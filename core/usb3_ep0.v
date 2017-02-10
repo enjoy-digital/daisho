@@ -442,13 +442,13 @@ end
 	reg		[3:0]	buf_in_rdaddr;
 	wire	[31:0]	buf_in_q;
 	
-mf_usb3_ep0in	iu3ep0i (
-	.clock 		( local_clk ),
-	.data 		( buf_in_data ),
-	.rdaddress 	( buf_in_rdaddr ),
-	.wraddress 	( buf_in_addr ),
-	.wren 		( buf_in_wren ),
-	.q 			( buf_in_q )
+usb3_ep0in_ram	iu3ep0i (
+	.clk 		( local_clk ),
+	.wr_dat_w 	( buf_in_data ),
+	.rd_adr 	( buf_in_rdaddr ),
+	.wr_adr 	( buf_in_addr ),
+	.wr_we 		( buf_in_wren ),
+	.rd_dat_r 	( buf_in_q )
 );
 
 	reg		[7:0]	descrip_addr_offset;
