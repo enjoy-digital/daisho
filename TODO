@@ -3,7 +3,6 @@ create generic (when possible) or Xilinx primitives:
 - mf_usb2_ep0in: 64x8b ram (1 write / 1 read / 1 clock) | generic
 
 - mf_usb3_ep0in: 16x32b ram (1 write / 1 read / 1 clock) | generic
-- mf_usb3_ep: 1024x32b ram (1 write / 1 read / 2 clocks) | generic
 
 - mf_usb3_pll: PLL | vendor specific
 - mf_usb3_rx: DDR input | vendor specific
