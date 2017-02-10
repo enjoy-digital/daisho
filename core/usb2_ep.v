@@ -232,15 +232,15 @@ end
 	wire	[9:0]	rd_addr = buf_out_addr + (ptr_out ? 10'd512 : 10'h0);
 	wire	[9:0]	wr_addr = buf_in_addr + (ptr_in ? 10'd512 : 10'h0);
 	
-mf_usb2_ep	iu2ep (
-	.rdclock	( rd_clk ),
-	.rdaddress 	( rd_addr ),
-	.q 			( buf_out_q ),
+usb2_ep_ram	iu2ep (
+	.rd_clk		( rd_clk ),
+	.rd_adr 	( rd_addr ),
+	.rd_dat_r 	( buf_out_q ),
 	
-	.wrclock	( wr_clk ),
-	.wraddress 	( wr_addr ),
-	.data 		( buf_in_data ),
-	.wren 		( buf_in_wren )
+	.wr_clk		( wr_clk ),
+	.wr_adr 	( wr_addr ),
+	.wr_dat_w 	( buf_in_data ),
+	.wr_we 		( buf_in_wren )
 );
 
 	
