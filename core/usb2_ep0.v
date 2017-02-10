@@ -444,10 +444,10 @@ mf_usb2_ep0in	iu2ep0i (
 
 	reg		[7:0]	descrip_addr_offset;
 	
-mf_usb2_descrip	iu2d (
-	.clock 		( phy_clk ),
-	.address 	( buf_out_addr + descrip_addr_offset),
-	.q 			( buf_out_q )
+usb2_descrip_rom iu2d (
+	.clk 		( phy_clk ),
+	.adr 		( buf_out_addr + descrip_addr_offset),
+	.dat_r 		( buf_out_q )
 );
 
 	

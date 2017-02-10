@@ -1,6 +1,6 @@
 create generic (when possible) or Xilinx primitives:
 
-- mf_usb2_descrip: 256x8b rom | generic
+- mf_usb2_descrip: 256x8b rom | generic | done
 - mf_usb2_ep0in: 64x8b ram (1 write / 1 read / 1 clock) | generic
 - mf_usb2_ep: 1024x8b ram (1 write / 1 read / 2 clocks) | generic
 
