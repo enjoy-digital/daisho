@@ -453,10 +453,10 @@ mf_usb3_ep0in	iu3ep0i (
 
 	reg		[7:0]	descrip_addr_offset;
 	
-mf_usb3_descrip	iu3d (
-	.clock 		( local_clk ),
-	.address 	( buf_out_addr + descrip_addr_offset),
-	.q 			( buf_out_q )
+usb3_descrip_rom	iu3d (
+	.clk 		( local_clk ),
+	.adr 		( buf_out_addr + descrip_addr_offset),
+	.dat_r 		( buf_out_q )
 );
 
 
