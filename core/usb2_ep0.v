@@ -428,13 +428,13 @@ end
 	reg		[5:0]	buf_in_rdaddr;
 	wire	[7:0]	buf_in_q;
 	
-mf_usb2_ep0in	iu2ep0i (
-	.clock 		( phy_clk ),
-	.data 		( buf_in_data ),
-	.rdaddress 	( buf_in_rdaddr ),
-	.wraddress 	( buf_in_addr ),
-	.wren 		( buf_in_wren ),
-	.q 			( buf_in_q )
+usb2_ep0in_ram	iu2ep0i (
+	.clk 		( phy_clk ),
+	.wr_dat_w 	( buf_in_data ),
+	.rd_adr 	( buf_in_rdaddr ),
+	.wr_adr 	( buf_in_addr ),
+	.wr_we 		( buf_in_wren ),
+	.rd_dat_r 	( buf_in_q )
 );
 
 
