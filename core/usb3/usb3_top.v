@@ -4,22 +4,24 @@
 //
 // Copyright (c) 2013 Marshall H.
 // All rights reserved.
-// This code is released under the terms of the simplified BSD license. 
+// This code is released under the terms of the simplified BSD license.
 // See LICENSE.TXT for details.
 //
 
 module usb3_top (
 
 input	wire			ext_clk,
-output	wire			clk_125_out,
 input	wire			reset_n,
-output	wire			reset_n_out,
 
-input	wire			phy_pipe_pclk,
+input	wire			phy_pipe_pclk,            // 250MHz:  PCLK
+input	wire			phy_pipe_half_clk,        // 125MHz:  1/2 PCLK
+input	wire			phy_pipe_half_clk_phase,  // 125MHz:  1/2 PCLK, phase shift 90
+input	wire			phy_pipe_quarter_clk,     // 62.5MHz: 1/4 PCLK
 input	wire	[15:0]	phy_pipe_rx_data,
 input	wire	[1:0]	phy_pipe_rx_datak,
 input	wire			phy_pipe_rx_valid,
-output	wire			phy_pipe_tx_clk,
+input	wire			phy_pipe_tx_clk,          // 250Mhz: TX CLK
+input	wire			phy_pipe_tx_clk_phase,    // 250Mhz: TX CLK, phase shift 90
 output	wire	[15:0]	phy_pipe_tx_data,
 output	wire	[1:0]	phy_pipe_tx_datak,
 
@@ -64,32 +66,25 @@ output	wire	[7:0]	vend_req_request,
 output	wire	[15:0]	vend_req_val
 
 );
-	
-	assign			reset_n_out 	= 1'b1;
+
 	reg 			reset_1, reset_2;				// local reset
-	wire			local_reset		= reset_n & pll_locked & phy_pwrpresent;
-	wire			local_pclk_quarter;				// local 1/4 PCLK output via PLL
-	wire			local_pclk_half;				// local 1/2 PCLK output via PLL
-	wire			local_pclk_half_phase;			// local 1/2 PCLK output via PLL, phase shift 90
-	wire			local_tx_clk;					// local regenerated PCLK used for transmit
-	wire			local_tx_clk_phase;				// local regenerated PCLK used for transmit, phase shift 90
-	wire			pll_locked;						// indicates PCLK present and valid clock output
-	
-always @(posedge local_pclk_half ) begin
+	wire			local_reset		= reset_n & phy_pwrpresent;
+
+always @(posedge phy_pipe_half_clk ) begin
 
 	// synchronize external reset to local domain
 	{reset_2, reset_1} <= {reset_1, local_reset};
-	
+
 end
 
 	assign			phy_reset_n = reset_n;			// TUSB1310A has minimum 1uS pulse width for RESET
 													// responsibility of the toplevel module to supply this reset
 													// NOTE: reset entire phy will cause loss of PLL lock
-	assign			phy_phy_reset_n = reset_n & phy_pwrpresent;		
+	assign			phy_phy_reset_n = reset_n & phy_pwrpresent;
 													// reset the PHY along with all our core code if cable unplugged
 	assign			phy_out_enable = 1'b1;
-		
-	wire	[1:0]	mux_tx_margin; 
+
+	wire	[1:0]	mux_tx_margin;
 
 	parameter		XTAL_SEL			= 1'b0; 	// crystal input
 	parameter		OSC_SEL				= 1'b1; 	// clock input
@@ -98,12 +93,9 @@ end
 	parameter		PIPE_16BIT			= 1'b0;		// sdr 16bit pipe interface
 	// strap pins
 	assign			phy_rx_elecidle 	= reset_2 ? 1'bZ : XTAL_SEL;
-	assign			phy_tx_margin	  	= reset_2 ? mux_tx_margin  : SSC_DIS;	
+	assign			phy_tx_margin	  	= reset_2 ? mux_tx_margin  : SSC_DIS;
 	assign			phy_phy_status 		= reset_2 ? 1'bZ : PIPE_16BIT;
-	
-	assign			clk_125_out			= local_pclk_half;
-		
-	
+
 ////////////////////////////////////////////////////////////
 //
 // USB 3.0 PIPE3 interface
@@ -111,14 +103,14 @@ end
 ////////////////////////////////////////////////////////////
 
 	wire		ltssm_reset_n;
-	
+
 usb3_pipe	iu3p (
 
-	.slow_clk				( local_pclk_quarter ),
-	.local_clk				( local_pclk_half ),
-	.local_clk_capture		( local_pclk_half_phase ),
-	.local_tx_clk			( local_tx_clk ),
-	.local_tx_clk_phase		( local_tx_clk_phase ),
+	.slow_clk				( phy_pipe_quarter_clk ),
+	.local_clk				( phy_pipe_half_clk ),
+	.local_clk_capture		( phy_pipe_half_clk_phase ),
+	.local_tx_clk			( phy_pipe_tx_clk ),
+	.local_tx_clk_phase		( phy_pipe_tx_clk_phase ),
 	.reset_n				( reset_2 ),
 	.ltssm_reset_n			( ltssm_reset_n ),
 
@@ -146,7 +138,7 @@ usb3_pipe	iu3p (
 	.phy_rx_termination		( phy_rx_termination ),
 	.phy_rate				( phy_rate ),
 	.phy_elas_buf_mode		( phy_elas_buf_mode ),
-	
+
 	.link_in_data			( link_in_data ),
 	.link_in_datak			( link_in_datak ),
 	.link_in_active			( link_in_active ),
@@ -154,18 +146,18 @@ usb3_pipe	iu3p (
 	.link_out_datak			( link_out_datak ),
 	.link_out_active		( link_out_active ),
 	.link_out_stall			( link_out_stall ),
-	
+
 	.partner_detect			( partner_detect ),
-	.partner_looking		( partner_looking ),	
+	.partner_looking		( partner_looking ),
 	.partner_detected		( partner_detected ),
-	
+
 	.ltssm_tx_detrx_lpbk	( port_tx_detrx_lpbk ),
 	.ltssm_tx_elecidle		( port_tx_elecidle ),
 	.ltssm_power_down		( port_power_down ),
 	.ltssm_power_go			( port_power_go ),
 	.ltssm_power_ack		( port_power_ack ),
 	.ltssm_hot_reset		( ltssm_hot_reset ),
-	
+
 	.ltssm_state				( ltssm_state ),
 	.ltssm_training				( ltssm_training ),
 	.ltssm_train_rxeq			( ltssm_train_rxeq ),
@@ -176,13 +168,13 @@ usb3_pipe	iu3p (
 	.ltssm_train_config			( ltssm_train_config ),
 	.ltssm_train_idle			( ltssm_train_idle ),
 	.ltssm_train_idle_pass		( ltssm_train_idle_pass ),
-	
+
 	.lfps_recv_active		( lfps_recv_active ),
 	.lfps_recv_poll_u1		( lfps_recv_poll_u1 ),
 	.lfps_recv_ping			( lfps_recv_ping ),
 	.lfps_recv_reset		( lfps_recv_reset ),
 	.lfps_recv_u2lb			( lfps_recv_u2lb ),
-	.lfps_recv_u3			( lfps_recv_u3 )	
+	.lfps_recv_u3			( lfps_recv_u3 )
 
 );
 
@@ -196,13 +188,13 @@ usb3_pipe	iu3p (
 	wire			port_rx_term;
 	wire			port_tx_detrx_lpbk;
 	wire			port_tx_elecidle;
-	
+
 	wire	[1:0]	port_power_down;
 	wire			port_power_go;
 	wire			port_power_ack;
 	wire			port_power_err;
 	wire			ltssm_hot_reset;
-	
+
 	wire			ltssm_training;
 	wire			ltssm_train_rxeq;
 	wire			ltssm_train_rxeq_pass;
@@ -216,32 +208,32 @@ usb3_pipe	iu3p (
 	wire			partner_detect;
 	wire			partner_looking;
 	wire			partner_detected;
-	
+
 	wire			lfps_recv_active;
 	wire			lfps_recv_poll_u1;
 	wire			lfps_recv_ping;
 	wire			lfps_recv_reset;
 	wire			lfps_recv_u2lb;
 	wire			lfps_recv_u3;
-	
+
 	wire			ltssm_warm_reset;
 
 usb3_ltssm	iu3lt (
 
-	.slow_clk				( local_pclk_quarter ),
-	.local_clk				( local_pclk_half ),
+	.slow_clk				( phy_pipe_quarter_clk ),
+	.local_clk				( phy_pipe_half_clk ),
 	.reset_n				( ltssm_reset_n ),
 
 	// inputs
 	.vbus_present			( phy_pwrpresent ),
 	.port_rx_valid			( phy_pipe_rx_valid ),	// these signals are in the 250mhz source
 	.port_rx_elecidle		( phy_rx_elecidle ),	// domain, but no problem for lfps in 62.5mhz
-	.partner_looking		( partner_looking ),	
+	.partner_looking		( partner_looking ),
 	.partner_detected		( partner_detected ),
 	.port_power_state		( phy_power_down ),		// reflect actual value driven by PIPE pd_fsm
 	.port_power_ack			( port_power_ack ),
 	.port_power_err			( port_power_err ),
-	
+
 	.train_rxeq_pass		( ltssm_train_rxeq_pass ),
 	.train_idle_pass		( ltssm_train_idle_pass ),
 	.train_ts1				( ltssm_train_ts1 ),
@@ -250,7 +242,7 @@ usb3_ltssm	iu3lt (
 	.go_recovery			( ltssm_go_recovery ),
 	.go_u					( ltssm_go_u ),
 	.hot_reset				( ltssm_hot_reset ),
-	
+
 	// outputs
 	.ltssm_state			( ltssm_state ),
 	.port_rx_term			( port_rx_term ),
@@ -259,20 +251,20 @@ usb3_ltssm	iu3lt (
 	.port_power_down		( port_power_down ),
 	.port_power_go			( port_power_go ),
 	.partner_detect			( partner_detect ),
-	
+
 	.training				( ltssm_training ),
 	.train_rxeq				( ltssm_train_rxeq ),
 	.train_active			( ltssm_train_active ),
 	.train_config			( ltssm_train_config ),
 	.train_idle				( ltssm_train_idle ),
-	
+
 	.lfps_recv_active		( lfps_recv_active ),
 	.lfps_recv_poll_u1		( lfps_recv_poll_u1 ),
 	.lfps_recv_ping			( lfps_recv_ping ),
 	.lfps_recv_reset		( lfps_recv_reset ),
 	.lfps_recv_u2lb			( lfps_recv_u2lb ),
-	.lfps_recv_u3			( lfps_recv_u3 ),	
-	
+	.lfps_recv_u3			( lfps_recv_u3 ),
+
 	.warm_reset				( ltssm_warm_reset )
 );
 
@@ -293,12 +285,12 @@ usb3_ltssm	iu3lt (
 	wire				ltssm_go_disabled;
 	wire				ltssm_go_recovery;
 	wire		[2:0]	ltssm_go_u;
-	
+
 usb3_link iu3l (
 
-	.local_clk				( local_pclk_half ),
+	.local_clk				( phy_pipe_half_clk ),
 	.reset_n				( reset_2 ),
-	
+
 	.ltssm_state			( ltssm_state ),
 	.ltssm_hot_reset		( ltssm_hot_reset ),
 	.ltssm_go_disabled		( ltssm_go_disabled ),
@@ -312,10 +304,10 @@ usb3_link iu3l (
 	.outp_datak				( link_out_datak ),
 	.outp_active			( link_out_active ),
 	.out_stall				( link_out_stall ),
-	
+
 	.endp_mode_rx			( prot_endp_mode_rx ),
 	.endp_mode_tx			( prot_endp_mode_tx ),
-	
+
 	.prot_rx_tp				( prot_rx_tp ),
 	.prot_rx_tp_hosterr		( prot_rx_tp_hosterr ),
 	.prot_rx_tp_retry		( prot_rx_tp_retry ),
@@ -336,7 +328,7 @@ usb3_link iu3l (
 	.prot_rx_dpp_start		( prot_rx_dpp_start ),
 	.prot_rx_dpp_done		( prot_rx_dpp_done ),
 	.prot_rx_dpp_crcgood	( prot_rx_dpp_crcgood ),
-	
+
 	.prot_tx_tp_a			( prot_tx_tp_a ),
 	.prot_tx_tp_a_retry		( prot_tx_tp_a_retry ),
 	.prot_tx_tp_a_dir		( prot_tx_tp_a_dir ),
@@ -356,7 +348,7 @@ usb3_link iu3l (
 	.prot_tx_tp_b_seq		( prot_tx_tp_b_seq ),
 	.prot_tx_tp_b_stream	( prot_tx_tp_b_stream ),
 	.prot_tx_tp_b_ack		( prot_tx_tp_b_ack ),
-	
+
 	.prot_tx_tp_c			( prot_tx_tp_c ),
 	.prot_tx_tp_c_retry		( prot_tx_tp_c_retry ),
 	.prot_tx_tp_c_dir		( prot_tx_tp_c_dir ),
@@ -366,7 +358,7 @@ usb3_link iu3l (
 	.prot_tx_tp_c_seq		( prot_tx_tp_c_seq ),
 	.prot_tx_tp_c_stream	( prot_tx_tp_c_stream ),
 	.prot_tx_tp_c_ack		( prot_tx_tp_c_ack ),
-	
+
 	.prot_tx_dph			( prot_tx_dph ),
 	.prot_tx_dph_eob		( prot_tx_dph_eob ),
 	.prot_tx_dph_dir		( prot_tx_dph_dir ),
@@ -375,7 +367,7 @@ usb3_link iu3l (
 	.prot_tx_dph_len		( prot_tx_dph_len ),
 	.prot_tx_dpp_ack		( prot_tx_dpp_ack ),
 	.prot_tx_dpp_done		( prot_tx_dpp_done ),
-	
+
 	.buf_in_addr			( prot_buf_in_addr ),
 	.buf_in_data			( prot_buf_in_data ),
 	.buf_in_wren			( prot_buf_in_wren ),
@@ -383,14 +375,14 @@ usb3_link iu3l (
 	.buf_in_commit			( prot_buf_in_commit ),
 	.buf_in_commit_len		( prot_buf_in_commit_len ),
 	.buf_in_commit_ack		( prot_buf_in_commit_ack ),
-		
+
 	.buf_out_addr			( prot_buf_out_addr ),
 	.buf_out_q				( prot_buf_out_q ),
 	.buf_out_len			( prot_buf_out_len ),
 	.buf_out_hasdata		( prot_buf_out_hasdata ),
 	.buf_out_arm			( prot_buf_out_arm ),
 	.buf_out_arm_ack		( prot_buf_out_arm_ack ),
-	
+
 	// current device address, driven by endpoint 0
 	.dev_addr				( prot_dev_addr )
 );
@@ -406,12 +398,12 @@ usb3_link iu3l (
 	//wire	[31:0]	prot_in_data;
 	//wire	[3:0]	prot_in_datak;
 	//wire			prot_in_active;
-	
+
 	wire	[1:0]	prot_endp_mode_rx;
 	wire	[1:0]	prot_endp_mode_tx;
 	wire	[6:0]	prot_dev_addr;
 	wire			prot_configured;
-	
+
 	wire			prot_rx_tp;
 	wire			prot_rx_tp_hosterr;
 	wire			prot_rx_tp_retry;
@@ -432,7 +424,7 @@ usb3_link iu3l (
 	wire			prot_rx_dpp_start;
 	wire			prot_rx_dpp_done;
 	wire			prot_rx_dpp_crcgood;
-	
+
 	wire			prot_tx_tp_a;
 	wire			prot_tx_tp_a_retry;
 	wire			prot_tx_tp_a_dir;
@@ -452,7 +444,7 @@ usb3_link iu3l (
 	wire	[4:0]	prot_tx_tp_b_seq;
 	wire	[15:0]	prot_tx_tp_b_stream;
 	wire			prot_tx_tp_b_ack;
-	
+
 	wire			prot_tx_tp_c;
 	wire			prot_tx_tp_c_retry;
 	wire			prot_tx_tp_c_dir;
@@ -462,7 +454,7 @@ usb3_link iu3l (
 	wire	[4:0]	prot_tx_tp_c_seq;
 	wire	[15:0]	prot_tx_tp_c_stream;
 	wire			prot_tx_tp_c_ack;
-	
+
 	wire			prot_tx_dph;
 	wire			prot_tx_dph_eob;
 	wire			prot_tx_dph_dir;
@@ -487,22 +479,22 @@ usb3_link iu3l (
 	wire			prot_buf_out_hasdata;
 	wire			prot_buf_out_arm;
 	wire			prot_buf_out_arm_ack;
-	
-	
+
+
 
 usb3_protocol iu3r (
 
-	.local_clk				( local_pclk_half ),
-	.slow_clk				( local_pclk_quarter ),
+	.local_clk				( phy_pipe_half_clk ),
+	.slow_clk				( phy_pipe_quarter_clk ),
 	.ext_clk				( ext_clk ),
-	
+
 	.reset_n				( reset_2 | ~ltssm_warm_reset),
 	.ltssm_state			( ltssm_state ),
 
 	// muxed endpoint signals
-	.endp_mode_rx				( prot_endp_mode_rx ),
-	.endp_mode_tx				( prot_endp_mode_tx ),
-	
+	.endp_mode_rx			( prot_endp_mode_rx ),
+	.endp_mode_tx			( prot_endp_mode_tx ),
+
 	.rx_tp					( prot_rx_tp ),
 	.rx_tp_hosterr			( prot_rx_tp_hosterr ),
 	.rx_tp_retry			( prot_rx_tp_retry ),
@@ -523,7 +515,7 @@ usb3_protocol iu3r (
 	.rx_dpp_start			( prot_rx_dpp_start ),
 	.rx_dpp_done			( prot_rx_dpp_done ),
 	.rx_dpp_crcgood			( prot_rx_dpp_crcgood ),
-	
+
 	.tx_tp_a				( prot_tx_tp_a ),
 	.tx_tp_a_retry			( prot_tx_tp_a_retry ),
 	.tx_tp_a_dir			( prot_tx_tp_a_dir ),
@@ -543,7 +535,7 @@ usb3_protocol iu3r (
 	.tx_tp_b_seq			( prot_tx_tp_b_seq ),
 	.tx_tp_b_stream			( prot_tx_tp_b_stream ),
 	.tx_tp_b_ack			( prot_tx_tp_b_ack ),
-	
+
 	.tx_tp_c				( prot_tx_tp_c ),
 	.tx_tp_c_retry			( prot_tx_tp_c_retry ),
 	.tx_tp_c_dir			( prot_tx_tp_c_dir ),
@@ -553,7 +545,7 @@ usb3_protocol iu3r (
 	.tx_tp_c_seq			( prot_tx_tp_c_seq ),
 	.tx_tp_c_stream			( prot_tx_tp_c_stream ),
 	.tx_tp_c_ack			( prot_tx_tp_c_ack ),
-	
+
 	.tx_dph					( prot_tx_dph ),
 	.tx_dph_eob				( prot_tx_dph_eob ),
 	.tx_dph_dir				( prot_tx_dph_dir ),
@@ -562,7 +554,7 @@ usb3_protocol iu3r (
 	.tx_dph_len				( prot_tx_dph_len ),
 	.tx_dpp_ack				( prot_tx_dpp_ack ),
 	.tx_dpp_done			( prot_tx_dpp_done ),
-	
+
 	.buf_in_addr			( prot_buf_in_addr ),
 	.buf_in_data			( prot_buf_in_data ),
 	.buf_in_wren			( prot_buf_in_wren ),
@@ -570,16 +562,16 @@ usb3_protocol iu3r (
 	.buf_in_commit			( prot_buf_in_commit ),
 	.buf_in_commit_len		( prot_buf_in_commit_len ),
 	.buf_in_commit_ack		( prot_buf_in_commit_ack ),
-	
+
 	.buf_out_addr			( prot_buf_out_addr ),
 	.buf_out_q				( prot_buf_out_q ),
 	.buf_out_len			( prot_buf_out_len ),
 	.buf_out_hasdata		( prot_buf_out_hasdata ),
 	.buf_out_arm			( prot_buf_out_arm ),
 	.buf_out_arm_ack		( prot_buf_out_arm_ack ),
-	
+
 	// external interface
-	
+
 	.ext_buf_in_addr		( buf_in_addr ),
 	.ext_buf_in_data		( buf_in_data ),
 	.ext_buf_in_wren		( buf_in_wren ),
@@ -588,7 +580,7 @@ usb3_protocol iu3r (
 	.ext_buf_in_commit		( buf_in_commit ),
 	.ext_buf_in_commit_len	( buf_in_commit_len ),
 	.ext_buf_in_commit_ack	( buf_in_commit_ack ),
-	
+
 	.ext_buf_out_addr		( buf_out_addr ),
 	.ext_buf_out_q			( buf_out_q ),
 	.ext_buf_out_len		( buf_out_len ),
@@ -599,33 +591,11 @@ usb3_protocol iu3r (
 	.vend_req_act			( vend_req_act ),
 	.vend_req_request		( vend_req_request ),
 	.vend_req_val			( vend_req_val ),
-	
+
 	// tell the rest of the USB controller about what
 	// our current device address is, assigned by host
 	.dev_addr				( prot_dev_addr ),
-	.configured				( prot_configured )	
+	.configured				( prot_configured )
 );
-	
-
-
-////////////////////////////////////////////////////////////
-//
-// PLL
-//
-////////////////////////////////////////////////////////////
-
-mf_usb3_pll	 iu3pll (
-	.inclk0 	( phy_pipe_pclk ),			// 250mhz
-	
-	.c0 		( local_pclk_quarter ),		// 62.5mhz
-	.c1 		( local_pclk_half ),		// 125mhz
-	.c2 		( local_pclk_half_phase ),	// 125mhz 90 phase shift
-	.c3			( local_tx_clk ),			// 250mhz 0 phase shift
-	.c4			( local_tx_clk_phase ),		// 250mhz 90 phase shift
-	
-	.locked 	( pll_locked )				// valid high
-);
-
 
 endmodule
-
