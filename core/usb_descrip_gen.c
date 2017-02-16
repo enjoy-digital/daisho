@@ -25,8 +25,8 @@
 // warning: objectionable C code ahead
 // proceed with extreme prejudice
 
-char filename_usb2_init[] = "usb2_descrip.init";
-char filename_usb3_init[] = "usb3_descrip.init";
+char filename_usb2_init[] = "usb2_descrip_rom.init";
+char filename_usb3_init[] = "usb3_descrip_rom.init";
 char filename_usb2_bin[] = "usb2_descrip.bin";
 char filename_usb3_bin[] = "usb3_descrip.bin";
 char filename_descrip_vh[] = "usb_descrip.vh";
@@ -100,8 +100,8 @@ void add_device_qual(u16 usb_spec, u8 class_code, u8 subclass, u8 protocol_code,
 	// this is not included in USB3 descriptors
 	*a++ = 0x0A;
 	*a++ = 0x06;
-	*a++ = (usb_spec == 0x300) ? (0x210>>8) : (0x200>>8);
 	*a++ = (usb_spec == 0x300) ? (0x210&0xff) : (0x200&0xff);
+	*a++ = (usb_spec == 0x300) ? (0x210>>8) : (0x200>>8);
 	*a++ = class_code;
 	*a++ = subclass;
 	*a++ = protocol_code;
@@ -121,13 +121,13 @@ void add_device_descr(u16 usb_spec, u8 class_code, u8 subclass, u8 protocol_code
 	// usb spec 2.10
 	*a++ = 0x12;					// length
 	*a++ = 0x01;					// descriptor ID
-	*a++ = (usb_spec == 0x300) ? (0x210>>8) : (0x200>>8); // bcdUSB
 	*a++ = (usb_spec == 0x300) ? (0x210&0xff) : (0x200&0xff); // bcdUSB
+	*a++ = (usb_spec == 0x300) ? (0x210>>8) : (0x200>>8); // bcdUSB
 	write_buf8(buf_2, 4); a = buf_2+2;
 	// usb spec 3.00
-	*a++ = (0x300>>8); // bcdUSB
 	*a++ = (0x300&0xff); // bcdUSB
-	write_buf32(buf_2, 4); a = buf_2;
+	*a++ = (0x300>>8); // bcdUSB
+	write_buf32((u32 *)buf_2, 4); a = buf_2;
 
 	*a++ = class_code;				// bDeviceClass
 	*a++ = subclass;				// bDeviceSubClass
@@ -135,14 +135,14 @@ void add_device_descr(u16 usb_spec, u8 class_code, u8 subclass, u8 protocol_code
 	*a++ = max_size_ep0;			// bMaxPacketSize0
 	write_buf8(buf_2, 4); a--;
 	*a++ = 0x09;					// USB3: 512 bytes fixed EP0
-	write_buf32(buf_2, 4); a = buf_2;
+	write_buf32((u32 *)buf_2, 4); a = buf_2;
 
-	*a++ = (vid>>8);
 	*a++ = (vid&0xff);
-	*a++ = (pid>>8);
+	*a++ = (vid>>8);
 	*a++ = (pid&0xff);
-	*a++ = (dev_num>>8);
+	*a++ = (pid>>8);
 	*a++ = (dev_num&0xff);
+	*a++ = (dev_num>>8);
 	*a++ = idx_mfg;
 	*a++ = idx_prod;
 	*a++ = idx_serial;
@@ -171,8 +171,8 @@ void add_config_start(u16 usb_spec, u8 attrib, u32 power_ma, u8 num_endpoints)
 	// write Config descriptor
 	*a++ = 0x09;				// length
 	*a++ = 0x02;				// descriptor ID
-	*a++ = (0xffff>>8);   		// total length, must be overwritten later
 	*a++ = (0xffff&0xff);       // total length, must be overwritten later
+	*a++ = (0xffff>>8);   		// total length, must be overwritten later
 	*a++ = 0x01;				// bNumInterfaces
 	*a++ = 0x01;				// bConfigurationValue
 	*a++ = 0x00;				// iConfiguration
@@ -211,8 +211,8 @@ void add_endpoint(u8 idx, u8 dir, u8 attrib, u16 max_pkt, u8 interval, u8 max_bu
 	*a++ = 0x05;				// descriptor ID
 	*a++ = idx | (dir ? 0x80 : 0x0);
 	*a++ = attrib;				// bmAttributes
-	*a++ = max_pkt>>8;	        // max packet size
-	*a++ = max_pkt&0xff;	    // max packet size
+	*a++ = (max_pkt&0xff);	    // max packet size
+	*a++ = (max_pkt>>8);	    // max packet size
 	*a++ = interval;			// bInterval
 	bytes_pending_2 += 0x7;
 	bytes_pending_3 += 0x7;
@@ -229,8 +229,8 @@ void add_endpoint(u8 idx, u8 dir, u8 attrib, u16 max_pkt, u8 interval, u8 max_bu
 	*z++ = 0x30;				// descriptor ID
 	*z++ = max_burst-1;
 	*z++ = attrib_3;			// bmAttributes
-	*z++ = (bytes_per_interval>>8);	  // wBytesPerInterval
 	*z++ = (bytes_per_interval&0xff); // wBytesPerInterval
+	*z++ = (bytes_per_interval>>8);	  // wBytesPerInterval
 	bytes_pending_3 += 0x6;
 
 }
@@ -263,7 +263,7 @@ void add_config_end()
 	memcpy(&buf_3[2], &bytes_pending_3, 2);
 
 	write_buf8(buf_2, bytes_pending_2);
-	write_buf32(buf_3, bytes_pending_3);
+	write_buf32((u32 *)buf_3, bytes_pending_3);
 }
 
 void add_bos()
@@ -282,23 +282,24 @@ void add_bos()
 	*z++ = 0x10;				// bDescriptorType
 	*z++ = 0x02;				// bDevCapabilityType (USB 2.0 EXTENSION)
 
-	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
-	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
-	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
 	*z++ = 0x02;                // 32bit field: LPM Supported (SS Required)
+	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
+	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
+	*z++ = 0x00;                // 32bit field: LPM Supported (SS Required)
 
 	*z++ = 0x0A;				// bLength
 	*z++ = 0x10;				// bDescriptorType
 	*z++ = 0x03;				// bDevCapabilityType (SUPERSPEED_USB)
 	*z++ = 0x00;				// bmAttributes (8bit) (LTM Generation Incapable)
-	*z++ = 0x00;	         	// wSpeedsSupported (Operation supported FS, HS, SS)
 	*z++ = 0x0E;		        // wSpeedsSupported (Operation supported FS, HS, SS)
+	*z++ = 0x00;	         	// wSpeedsSupported (Operation supported FS, HS, SS)
 	*z++ = 0x02;				// bFunctionalitySupported (Valid operation starts with HS)
 	*z++ = 0x08;				// bU1DevExitLat (Less than 8uS)
-	*z++ = 0x00;	         	// wU2DevExitLat (Less than 100uS)
 	*z++ = 0x64;				// wU2DevExitLat (Less than 100uS)
+	*z++ = 0x00;	         	// wU2DevExitLat (Less than 100uS)
 
-	write_buf32(buf_3, z - buf_3);
+
+	write_buf32((u32 *)buf_3, z - buf_3);
 }
 
 void add_string(u8 idx, char* str)
@@ -427,7 +428,7 @@ int main(int argc, char *argv[])
 
 	// pad out files to their max address space
 	while(bytes_written_2 < pow(2, bitwidth_2)) write_buf8("\0", 1);
-	while(bytes_written_3 < pow(2, bitwidth_3)*4) write_buf32("\0\0\0\0", 1);
+	while(bytes_written_3 < pow(2, bitwidth_3)*4) write_buf32((u32 *)"\0\0\0\0", 1);
 
 	printf("* Finished\n");
 	fclose(bin_2);
