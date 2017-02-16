@@ -17,13 +17,13 @@ input	wire			phy_pipe_pclk,            // 250MHz:  PCLK
 input	wire			phy_pipe_half_clk,        // 125MHz:  1/2 PCLK
 input	wire			phy_pipe_half_clk_phase,  // 125MHz:  1/2 PCLK, phase shift 90
 input	wire			phy_pipe_quarter_clk,     // 62.5MHz: 1/4 PCLK
-input	wire	[15:0]	phy_pipe_rx_data,
-input	wire	[1:0]	phy_pipe_rx_datak,
-input	wire			phy_pipe_rx_valid,
+input	wire	[31:0]	phy_pipe_rx_data,
+input	wire	[3:0]	phy_pipe_rx_datak,
+input	wire	[1:0]	phy_pipe_rx_valid,
 input	wire			phy_pipe_tx_clk,          // 250Mhz: TX CLK
 input	wire			phy_pipe_tx_clk_phase,    // 250Mhz: TX CLK, phase shift 90
-output	wire	[15:0]	phy_pipe_tx_data,
-output	wire	[1:0]	phy_pipe_tx_datak,
+output	wire	[31:0]	phy_pipe_tx_data,
+output	wire	[3:0]	phy_pipe_tx_datak,
 
 output	wire			phy_reset_n,
 output	wire			phy_out_enable,
@@ -31,9 +31,9 @@ output	wire			phy_phy_reset_n,
 output	wire			phy_tx_detrx_lpbk,
 output	wire			phy_tx_elecidle,
 inout	wire			phy_rx_elecidle,
-input	wire	[2:0]	phy_rx_status,
+input	wire	[5:0]	phy_rx_status,
 output	wire	[1:0]	phy_power_down,
-inout	wire			phy_phy_status,
+inout	wire	[1:0]	phy_phy_status,
 input	wire			phy_pwrpresent,
 
 output	wire			phy_tx_oneszeros,
