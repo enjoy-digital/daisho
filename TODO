@@ -1,8 +1,8 @@
-create generic (when possible) or Xilinx primitives:
-
-- mf_usb3_pll: PLL | vendor specific
-- mf_usb3_rx: DDR input | vendor specific
-- mf_usb3_tx: DDR output | vendor specific
-
-1) generate verilog code equivalent to primitives with LiteX
-2) integrate that in the core
+- get FMC board pinout
+- create basic design (KC705 or Nexys video?)
+- instanciate PLL in top design
+- instanciate PIPE DDR inputs/outputs in basic design
+- test implementation
+- add instrumentation signals and litescope on PIPE interface
+- test USB2 design
+- test PIPE interface and USB3.0 design with TUSB1310A.
