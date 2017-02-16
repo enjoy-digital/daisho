@@ -25,10 +25,10 @@
 // warning: objectionable C code ahead
 // proceed with extreme prejudice
 
-char filename_usb2_init[] = "usb2_descrip_rom.init";
-char filename_usb3_init[] = "usb3_descrip_rom.init";
-char filename_usb2_bin[] = "usb2_descrip.bin";
-char filename_usb3_bin[] = "usb3_descrip.bin";
+char filename_usb2_init[] = "./usb2/usb2_descrip_rom.init";
+char filename_usb3_init[] = "./usb3/usb3_descrip_rom.init";
+char filename_usb2_bin[] = "./usb2/usb2_descrip.bin";
+char filename_usb3_bin[] = "./usb3/usb3_descrip.bin";
 char filename_descrip_vh[] = "usb_descrip.vh";
 
 
