@@ -25,14 +25,14 @@
 // warning: objectionable C code ahead
 // proceed with extreme prejudice
 
-char filename_usb2_mif[] = "usb2_descrip.mif";
-char filename_usb3_mif[] = "usb3_descrip.mif";
+char filename_usb2_init[] = "usb2_descrip.init";
+char filename_usb3_init[] = "usb3_descrip.init";
 char filename_usb2_bin[] = "usb2_descrip.bin";
 char filename_usb3_bin[] = "usb3_descrip.bin";
 char filename_descrip_vh[] = "usb_descrip.vh";
 
 
-FILE *bin_2, *bin_3, *mif_2, *mif_3, *descrip_vh;
+FILE *bin_2, *bin_3, *init_2, *init_3, *descrip_vh;
 u32 i_2, i_3;
 u32 c_2, c_3;
 
@@ -59,7 +59,7 @@ void write_buf8(u8 *buf, u32 size)
 {
 	u32 i;
 	for(i = 0; i < size; i++){
-		fprintf(mif_2, "%d\t : %02X ;\n", i_2++, *buf++);
+		fprintf(init_2, "%02X\n", *buf++);
 		fwrite(buf-1, 1, 1, bin_2);
 		bytes_written_2 ++;
 	}
@@ -71,7 +71,7 @@ void write_buf32(u32 *buf, u32 size)
 	for(i = 0; i < size; i+=4){
 		w = *buf;
 		w = (w & 0xff) << 24 | (w & 0xff00) << 8 | (w & 0xff0000) >> 8 | (w & 0xff000000) >> 24 ;
-		fprintf(mif_3, "%d\t : %08X ;\n", i_3++, w);
+		fprintf(init_3, "%08X\n", w);
 		fwrite(buf, 4, 1, bin_3);
 		*buf++;
 		bytes_written_3 += 4;
@@ -84,45 +84,10 @@ void write_buf(void *buf, u32 size)
 	write_buf32(buf, size);
 }
 
-void write_info(char *name, u8 u)
-{
-	FILE *fp = (u == 0) ? mif_2 : mif_3;
-	fprintf(fp, "\n--\n-- Descriptor: %s\n-- \n", name);
-}
-
-void add_copyright()
-{
-	int i;
-	FILE *fp;
-	for(i = 0; i < 2; i++){
-		fp = (i == 0) ? mif_2 : mif_3;
-		fprintf(fp, "\n--\n-- usb %d.0 descriptor BRAM init values\n-- Generated with usb3_mifgen tool\n--", (i==0) ? 2 : 3);
-		fprintf(fp, "\n-- Copyright (c) 2013 Marshall H.\n-- All rights reserved.");
-		fprintf(fp, "\n-- This code is released under the terms of the simplified BSD license.");
-		fprintf(fp, "\n-- See LICENSE.TXT for details.\n--\n\n");
-		fprintf(fp, "WIDTH=%d;\n", i==0? 8 : 32);
-		fprintf(fp, "DEPTH=%d;\n", i==0? (int)pow(2, bitwidth_2) : (int)pow(2, bitwidth_3));
-		fprintf(fp, "ADDRESS_RADIX=DECIMAL;\n");
-		fprintf(fp, "DATA_RADIX=HEX;\n");
-		fprintf(fp, "CONTENT BEGIN\n");
-	}
-}
-void add_close()
-{
-	int i;
-	FILE *fp;
-	for(i = 0; i < 2; i++){
-		fp = (i == 0) ? mif_2 : mif_3;
-		fprintf(fp, "END;\n");
-	}
-}
-
 void print_offsets(char *name, u8 for_usb2, u8 for_usb3)
 {
 	if(for_usb2) fprintf(descrip_vh, "parameter\t[%d:0]\tDESCR_USB2_%s	= 'd%d;\n", bitwidth_2-1, name, i_2);
 	if(for_usb3) fprintf(descrip_vh, "parameter\t[%d:0]\tDESCR_USB3_%s	= 'd%d;\n", bitwidth_3-1, name, i_3);
-	if(for_usb2) write_info(name, 0);
-	if(for_usb3) write_info(name, 1);
 }
 
 void add_device_qual(u16 usb_spec, u8 class_code, u8 subclass, u8 protocol_code, u8 max_size_ep0,
@@ -379,8 +344,8 @@ int main(int argc, char *argv[])
 
 	printf("\n* Daisho USB 3.0 / USB 2.0 descriptor export tool\n  by marshallh, 2013\n");
 
-	fail(mif_2 = fopen(filename_usb2_mif, "w"), "Failed opening USB2.0 MIF");
-	fail(mif_3 = fopen(filename_usb3_mif, "w"), "Failed opening USB3.0 MIF");
+	fail(init_2 = fopen(filename_usb2_init, "w"), "Failed opening USB2.0 INIT");
+	fail(init_3 = fopen(filename_usb3_init, "w"), "Failed opening USB3.0 INIT");
 	fail(bin_2 = fopen(filename_usb2_bin, "wb"), "Failed opening USB2.0 BIN");
 	fail(bin_3 = fopen(filename_usb3_bin, "wb"), "Failed opening USB3.0 BIN");
 	fail(descrip_vh = fopen(filename_descrip_vh, "w"), "Failed opening descriptor include");
@@ -390,7 +355,6 @@ int main(int argc, char *argv[])
 	bitwidth_3 = 7;	// [6:0]
 
 	printf ("* Generating...\n");
-	add_copyright();
 
 	add_device_descr(	0x300,		// USB spec number (auto fixed 2.10 for 2.0)
 									// put 0x200 if you only use USB 2.0 core
@@ -465,12 +429,11 @@ int main(int argc, char *argv[])
 	while(bytes_written_2 < pow(2, bitwidth_2)) write_buf8("\0", 1);
 	while(bytes_written_3 < pow(2, bitwidth_3)*4) write_buf32("\0\0\0\0", 1);
 
-	add_close();
 	printf("* Finished\n");
 	fclose(bin_2);
 	fclose(bin_3);
-	fclose(mif_2);
-	fclose(mif_3);
+	fclose(init_2);
+	fclose(init_3);
 	fclose(descrip_vh);
 	return 0;
 }
