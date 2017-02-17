@@ -32,16 +32,16 @@ class BaseSoC(SoCCore):
             cpu_type=None,
             csr_data_width=32,
             with_uart=False,
-            ident="LiteJESD204B AD9154 Example Design",
+            ident="Daisho USB3.0 Test Design",
             with_timer=False
         )
         self.submodules.crg = CRG(platform.request(platform.default_clk_name))
 
-        # generate clock to user_sma_clock
+        # clocking
         clk200 = platform.request("clk200")
         clk200_se = Signal()
-        self.specials += Instance("IBUFDS", i_I=clk200.p,
-                                  i_IB=clk200.n, o_O=clk200_se)
+        self.specials += Instance("IBUFDS",
+        					i_I=clk200.p, i_IB=clk200.n, o_O=clk200_se)
 
         pll_locked = Signal()
         pll_fb = Signal()
@@ -67,12 +67,7 @@ class BaseSoC(SoCCore):
 
                      p_CLKOUT4_DIVIDE=2, p_CLKOUT4_PHASE=0.0, #o_CLKOUT4=
             ),
-            Instance("BUFG", i_I=pll_clk, o_O=pll_clk_bufg),
-            Instance("ODDR2", p_DDR_ALIGNMENT="NONE",
-                     p_INIT=0, p_SRTYPE="SYNC",
-                     i_D0=0, i_D1=1, i_S=0, i_R=0, i_CE=1,
-                     i_C0=pll_clk_bufg, i_C1=~pll_clk_bufg,
-                     o_Q=platform.request("user_sma_clock_p"))
+            Instance("BUFG", i_I=pll_clk, o_O=pll_clk_bufg)
         ]
 
         # uart <--> wishbone

@@ -3,10 +3,10 @@ from litex.boards.platforms import kc705
 
 _usb3_io = [
     # HiTechGlobal USB3.0 FMC P1 connector
-    ("clkout", 0, Pins("HPC:LA00_P_CC")),
-    ("reset_n", 0, Pins("HPC:LA32_N")),
-    ("ulpi", 0,
-        Subsignal("clk", Pins("HPC:HA01_P_CC")),
+    ("usb_clkout", 0, Pins("HPC:LA00_CC_P"), IOStandard("LVCMOS25")),
+    ("usb_reset_n", 0, Pins("HPC:LA32_N"), IOStandard("LVCMOS25")),
+    ("usb_ulpi", 0,
+        Subsignal("clk", Pins("HPC:HA01_CC_P")),
         Subsignal("data", Pins(
             "HPC:HA11_N", "HPC:HA13_N", "HPC:HA15_N", "HPC:HA12_N",
             "HPC:HA14_N", "HPC:HA15_P", "HPC:HA16_P", "HPC:HA12_P")),
@@ -15,7 +15,7 @@ _usb3_io = [
         Subsignal("nxt", Pins("HPC:HA13_P")),
         IOStandard("LVCMOS25"),
     ),
-    ("pipe_ctrl", 0,
+    ("usb_pipe_ctrl", 0,
         Subsignal("phy_reset_n", Pins("HPC:LA12_P")),
         Subsignal("tx_detrx_lpbk", Pins("HPC:LA29_N")),
         Subsignal("tx_elecidle", Pins("HPC:LA27_P")),
@@ -30,15 +30,15 @@ _usb3_io = [
         Subsignal("elas_buf_mode", Pins("HPC:LA15_N")),
         IOStandard("LVCMOS25"),
     ),
-    ("pipe_status", 0,
+    ("usb_pipe_status", 0,
         Subsignal("rx_elecidle", Pins("HPC:LA11_N")),
         Subsignal("rx_status", Pins("HPC:LA14_P", "HPC:LA15_P", "HPC:LA14_N")),
         Subsignal("phy_status", Pins("HPC:LA16_P")),
         Subsignal("pwr_present", Pins("HPC:LA32_P")),
         IOStandard("LVCMOS25"),
     ),
-    ("pipe", 0,
-        Subsignal("rx_clk", Pins("HPC:LA01_P_CC")),
+    ("usb_pipe_data", 0,
+        Subsignal("rx_clk", Pins("HPC:LA01_CC_P")),
         Subsignal("rx_valid", Pins("HPC:LA11_P")),
         Subsignal("rx_data", Pins(
             "HPC:LA10_N", "HPC:LA10_P", "HPC:LA09_N", "HPC:LA09_P",
@@ -52,8 +52,8 @@ _usb3_io = [
             "HPC:LA24_N", "HPC:LA26_N", "HPC:LA24_P", "HPC:LA26_P",
             "HPC:LA25_N", "HPC:LA21_N", "HPC:LA25_P", "HPC:LA21_P",
             "HPC:LA22_P", "HPC:LA22_N", "HPC:LA19_N", "HPC:LA23_N",
-            "HPC:LA23_P", "HPC:LA18_P_CC", "HPC:LA19_P", "HPC:LA20_N")),
-        Subsignal("tx_datak", Pins("HPC:LA18_N_CC", "HPC:LA17_P_CC")),
+            "HPC:LA23_P", "HPC:LA18_CC_P", "HPC:LA19_P", "HPC:LA20_N")),
+        Subsignal("tx_datak", Pins("HPC:LA18_CC_N", "HPC:LA17_CC_P")),
         IOStandard("LVCMOS25"),
     ),
 ]
