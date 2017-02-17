@@ -1,8 +1,5 @@
-- get FMC board pinout
-- create basic design (KC705 or Nexys video?)
-- instanciate PLL in top design
-- instanciate PIPE DDR inputs/outputs in basic design
-- test implementation
+- check PLL and DDR inputs/outputs in basic design
+- check and connect un-connected signals
 - add instrumentation signals and litescope on PIPE interface
 - test USB2 design
 - test PIPE interface and USB3.0 design with TUSB1310A.
