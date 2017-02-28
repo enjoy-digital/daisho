@@ -80,6 +80,7 @@ class USBSoC(BaseSoC):
             Instance("BUFG", i_I=phy_pipe_quarter_clk_pll, o_O=phy_pipe_quarter_clk),
             Instance("BUFG", i_I=phy_pipe_tx_clk_pll, o_O=phy_pipe_tx_clk),
             Instance("BUFG", i_I=phy_pipe_tx_clk_phase_pll, o_O=phy_pipe_tx_clk_phase),
+            Instance("IDELAYCTRL", i_REFCLK=ClockSignal(), i_RST=0) # FIXME
         ]
 
         # usb2 core
