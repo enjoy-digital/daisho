@@ -4,7 +4,6 @@ import argparse
 
 from litex.gen import *
 from litex.build.generic_platform import *
-from litex.boards.platforms import kc705
 
 from litex.gen.genlib.io import CRG
 
@@ -16,6 +15,8 @@ from liteeth.common import convert_ip
 from liteeth.phy import LiteEthPHY
 from liteeth.core import LiteEthUDPIPCore
 from liteeth.frontend.etherbone import LiteEthEtherbone
+
+from kc705_platform import Platform
 
 
 class BaseSoC(SoCCore):
@@ -36,39 +37,6 @@ class BaseSoC(SoCCore):
             with_timer=False
         )
         self.submodules.crg = CRG(platform.request(platform.default_clk_name))
-
-        # clocking
-        clk200 = platform.request("clk200")
-        clk200_se = Signal()
-        self.specials += Instance("IBUFDS",
-        					i_I=clk200.p, i_IB=clk200.n, o_O=clk200_se)
-
-        pll_locked = Signal()
-        pll_fb = Signal()
-        pll_clk = Signal()
-        pll_clk_bufg = Signal()
-        self.specials += [
-            Instance("PLLE2_BASE",
-                     p_STARTUP_WAIT="FALSE", o_LOCKED=pll_locked,
-
-                     # VCO @ 1GHz
-                     p_REF_JITTER1=0.01, p_CLKIN1_PERIOD=5.0,
-                     p_CLKFBOUT_MULT=5, p_DIVCLK_DIVIDE=1,
-                     i_CLKIN1=clk200_se, i_CLKFBIN=pll_fb, o_CLKFBOUT=pll_fb,
-
-                     # 500MHz
-                     p_CLKOUT0_DIVIDE=2, p_CLKOUT0_PHASE=0.0, o_CLKOUT0=pll_clk,
-
-                     p_CLKOUT1_DIVIDE=2, p_CLKOUT1_PHASE=0.0, #o_CLKOUT1=,
-
-                     p_CLKOUT2_DIVIDE=2, p_CLKOUT2_PHASE=0.0, #o_CLKOUT2=,
-
-                     p_CLKOUT3_DIVIDE=2, p_CLKOUT3_PHASE=0.0, #o_CLKOUT3=,
-
-                     p_CLKOUT4_DIVIDE=2, p_CLKOUT4_PHASE=0.0, #o_CLKOUT4=
-            ),
-            Instance("BUFG", i_I=pll_clk, o_O=pll_clk_bufg)
-        ]
 
         # uart <--> wishbone
         self.add_cpu_or_bridge(UARTWishboneBridge(platform.request("serial"),
@@ -103,7 +71,7 @@ class BaseSoC(SoCCore):
 
 
 def main():
-    platform = kc705.Platform()
+    platform = Platform()
     soc = BaseSoC(platform)
     builder = Builder(soc, output_dir="build", csr_csv="test/csr.csv")
     builder.build()
