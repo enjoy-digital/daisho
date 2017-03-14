@@ -418,7 +418,7 @@ class USBSoC(BaseSoC):
 def main():
     platform = Platform(toolchain="vivado")
     soc = USBSoC(platform)
-    builder = Builder(soc, output_dir="build")
+    builder = Builder(soc, output_dir="build", csr_csv="test/csr.csv")
     vns = builder.build()
     soc.do_exit(vns)
 
