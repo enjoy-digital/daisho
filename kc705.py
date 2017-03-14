@@ -242,6 +242,7 @@ class USBSoC(BaseSoC):
 
             dbg_frame_num = Signal(11)
             dbg_linestate = Signal(2)
+            dbg_state = Signal(7)
 
             self.comb += usb2_reset_n.eq(self.usb2_control.enable.storage)
             self.specials += Instance("usb2_top",
@@ -288,7 +289,8 @@ class USBSoC(BaseSoC):
                 o_err_setup_pkt=err_setup_pkt,
 
                 o_dbg_frame_num=dbg_frame_num,
-                o_dbg_linestate=dbg_linestate
+                o_dbg_linestate=dbg_linestate,
+                o_dbg_state=dbg_state
             )
             platform.add_verilog_include_path(os.path.join("core"))
             platform.add_verilog_include_path(os.path.join("core", "usb2"))
@@ -322,7 +324,8 @@ class USBSoC(BaseSoC):
                 err_setup_pkt,
 
                 dbg_frame_num,
-                dbg_linestate
+                dbg_linestate,
+                dbg_state
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 8192, cd="usb2")
 

@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2012-2013 Marshall H.
 // All rights reserved.
-// This code is released under the terms of the simplified BSD license. 
+// This code is released under the terms of the simplified BSD license.
 // See LICENSE.TXT for details.
 //
 
@@ -53,32 +53,33 @@ output	wire			err_pid_out_of_seq,
 output	wire			err_setup_pkt,
 
 output	wire	[10:0]	dbg_frame_num,
-output	wire	[1:0]	dbg_linestate
+output	wire	[1:0]	dbg_linestate,
+output  wire    [6:0]   dbg_state
 
 );
 
 	reg 			reset_1, reset_2;				// local reset
-	
-	// allow reset-time pin strapping for the usb 3.0 phy. 
+
+	// allow reset-time pin strapping for the usb 3.0 phy.
 	// this should not affect regular usb 2.0 PHYs
 	//
-	assign			phy_ulpi_d = (reset_2 ? (phy_ulpi_d_oe ? phy_ulpi_d_out : 8'bZZZZZZZZ) : 
+	assign			phy_ulpi_d = (reset_2 ? (phy_ulpi_d_oe ? phy_ulpi_d_out : 8'bZZZZZZZZ) :
 					{
 						1'b0,	// ISO_START	PIPE Isolate Mode
 						1'b0,	// ULPI_8BIT	Bus Width ULPI
 						2'b11,	// REFCLKSEL	Reference clock freq
 						4'b0
 					});
-	
+
 	wire	[7:0]	phy_ulpi_d_in = phy_ulpi_d;
 	wire	[7:0]	phy_ulpi_d_out;
 	wire			phy_ulpi_d_oe;
-									
+
 always @(posedge ext_clk) begin
 	// synchronize external reset to local domain
 	{reset_2, reset_1} <= {reset_1, reset_n};
 end
-									
+
 ////////////////////////////////////////////////////////////
 //
 // USB 2.0 ULPI interface
@@ -97,23 +98,23 @@ end
 usb2_ulpi 	ia (
 	// reset signal frome external clock domain, must be synchronized
 	.reset_n		( reset_n ),
-	
-	// locally generated reset, triggers local USB reset when cable is 
+
+	// locally generated reset, triggers local USB reset when cable is
 	// unplugged, OR'd with external reset above
 	.reset_local	( reset_n_out ),
-	
+
 	// easy flag that will cause all modules to stay in reset and be optimized out
 	// useful for testing 3.0 only
 	.opt_disable_all ( opt_disable_all ),
-	
+
 	// high-speed enable, full speed enumeration works but data transmission
 	// is not guaranteed
 	.opt_enable_hs	( opt_enable_hs ),
-	
+
 	// normally a change in Vbus signals that the device has been disconnected.
 	// on some PHYs this may be unreliable (such as TUSB1310A)
 	.opt_ignore_vbus (opt_ignore_vbus),
-	
+
 	// status signals
 	.stat_connected	( stat_connected ),
 	.stat_fs		( stat_fs ),
@@ -127,7 +128,7 @@ usb2_ulpi 	ia (
 	.phy_dir		( phy_ulpi_dir ),
 	.phy_stp		( phy_ulpi_stp ),
 	.phy_nxt		( phy_ulpi_nxt ),
-	
+
 	// packet layer interface
 	.pkt_out_act	( ulpi_out_act ),
 	.pkt_out_byte	( ulpi_out_byte ),
@@ -137,8 +138,9 @@ usb2_ulpi 	ia (
 	.pkt_in_byte	( ulpi_in_byte ),
 	.pkt_in_latch	( ulpi_in_latch ),
 	.pkt_in_stp		( ulpi_in_stp ),
-	
-	.dbg_linestate 	( dbg_linestate )
+
+	.dbg_linestate 	( dbg_linestate ),
+	.dbg_state      ( dbg_state)
 );
 
 
@@ -155,14 +157,14 @@ usb2_ulpi 	ia (
 	wire			packet_xfer_query;
 	wire	[3:0]	packet_xfer_endp;
 	wire	[3:0]	packet_xfer_pid;
-	
+
 usb2_packet ip (
 	// note this is the locally generated reset driven by the ULPI module
 	.reset_n			( reset_n_out ),
-	
+
 	// clock (60mhz) driven by external PHY
 	.phy_clk			( phy_ulpi_clk ),
-	
+
 	// connections to ULPI module
 	.in_act				( ulpi_out_act ),
 	.in_byte			( ulpi_out_byte ),
@@ -172,10 +174,10 @@ usb2_packet ip (
 	.out_byte			( ulpi_in_byte ),
 	.out_latch			( ulpi_in_latch ),
 	.out_stp			( ulpi_in_stp ),
-	
+
 	// currently selected endpoint buffer
 	.sel_endp			( prot_sel_endp ),
-	
+
 	.buf_in_addr		( prot_buf_in_addr ),
 	.buf_in_data		( prot_buf_in_data ),
 	.buf_in_wren		( prot_buf_in_wren ),
@@ -183,28 +185,28 @@ usb2_packet ip (
 	.buf_in_commit		( prot_buf_in_commit ),
 	.buf_in_commit_len	( prot_buf_in_commit_len ),
 	.buf_in_commit_ack	( prot_buf_in_commit_ack ),
-	
+
 	.buf_out_addr		( prot_buf_out_addr ),
 	.buf_out_q			( prot_buf_out_q ),
 	.buf_out_len		( prot_buf_out_len ),
 	.buf_out_hasdata	( prot_buf_out_hasdata ),
 	.buf_out_arm		( prot_buf_out_arm ),
 	.buf_out_arm_ack	( prot_buf_out_arm_ack ),
-	
+
 	.endp_mode			( prot_endp_mode ),
-	
+
 	.data_toggle_act	( prot_data_toggle_act ),
 	.data_toggle		( prot_data_toggle ),
-	
+
 	// current device address, driven by endpoint 0
 	.dev_addr			( prot_dev_addr ),
-	
+
 	// error signals, put your LA on these
 	.err_crc_pid		( err_crc_pid ),
 	.err_crc_tok		( err_crc_tok ),
 	.err_crc_pkt		( err_crc_pkt ),
 	.err_pid_out_of_seq ( err_pid_out_of_seq ),
-	
+
 	.dbg_frame_num	( dbg_frame_num )
 );
 
@@ -231,23 +233,23 @@ usb2_packet ip (
 	wire			prot_buf_out_arm;
 	wire			prot_buf_out_arm_ack;
 	wire	[6:0]	prot_dev_addr;
-	
+
 	wire	[1:0]	prot_endp_mode;
 	wire			prot_data_toggle_act;
 	wire	[1:0]	prot_data_toggle;
-	
+
 usb2_protocol ipr (
 	.reset_n			( reset_n_out ),
-	
+
 	// external interface clock. the dual-port endpoint block rams
 	// have one port clocked with the ULPI, and the other with this
 	// externally provided clock.
 	.ext_clk			( ext_clk ),
 	.phy_clk			( phy_ulpi_clk ),
-	
+
 	// muxed endpoint signals
 	.sel_endp			( prot_sel_endp ),
-	
+
 	.buf_in_addr		( prot_buf_in_addr ),
 	.buf_in_data		( prot_buf_in_data ),
 	.buf_in_wren		( prot_buf_in_wren ),
@@ -255,14 +257,14 @@ usb2_protocol ipr (
 	.buf_in_commit		( prot_buf_in_commit ),
 	.buf_in_commit_len	( prot_buf_in_commit_len ),
 	.buf_in_commit_ack	( prot_buf_in_commit_ack ),
-	
+
 	.buf_out_addr		( prot_buf_out_addr ),
 	.buf_out_q			( prot_buf_out_q ),
 	.buf_out_len		( prot_buf_out_len ),
 	.buf_out_hasdata	( prot_buf_out_hasdata ),
 	.buf_out_arm		( prot_buf_out_arm ),
 	.buf_out_arm_ack	( prot_buf_out_arm_ack ),
-	
+
 	// external interface
 	.ext_buf_in_addr		( buf_in_addr ),
 	.ext_buf_in_data		( buf_in_data ),
@@ -271,7 +273,7 @@ usb2_protocol ipr (
 	.ext_buf_in_commit		( buf_in_commit ),
 	.ext_buf_in_commit_len	( buf_in_commit_len ),
 	.ext_buf_in_commit_ack	( buf_in_commit_ack ),
-	
+
 	.ext_buf_out_addr		( buf_out_addr ),
 	.ext_buf_out_q			( buf_out_q ),
 	.ext_buf_out_len		( buf_out_len ),
@@ -282,14 +284,14 @@ usb2_protocol ipr (
 	.vend_req_act		( vend_req_act ),
 	.vend_req_request	( vend_req_request ),
 	.vend_req_val		( vend_req_val ),
-	
+
 	.endp_mode			( prot_endp_mode ),
-	
+
 	.data_toggle_act	( prot_data_toggle_act ),
 	.data_toggle		( prot_data_toggle ),
-	
+
 	.err_setup_pkt		( err_setup_pkt ),
-	
+
 	// tell the rest of the USB controller about what
 	// our current device address is, assigned by host
 	.dev_addr			( prot_dev_addr ),
