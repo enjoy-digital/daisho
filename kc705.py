@@ -301,13 +301,14 @@ class USBSoC(BaseSoC):
 
             # usb2 debug
             analyzer_signals = [
+                usb2_reset_n,
+                reset_n_out,
+
                 usb_ulpi.clk,
                 usb_ulpi.data,
                 usb_ulpi.dir,
                 usb_ulpi.stp,
                 usb_ulpi.nxt,
-
-                reset_n_out,
 
                 stat_connected,
                 stat_fs,
@@ -327,7 +328,7 @@ class USBSoC(BaseSoC):
                 dbg_frame_num,
                 dbg_linestate
             ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="usb2")
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 8192, cd="usb2")
 
 
         # usb3 core

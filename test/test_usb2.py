@@ -10,9 +10,9 @@ wb.open()
 # # #
 
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-analyzer.configure_trigger(cond={"soc_reset_n_out" : 1})
+analyzer.configure_trigger(cond={"soc_usb2_reset_n" : 1})
 analyzer.configure_subsampler(1)
-analyzer.run(offset=128, length=2048)
+analyzer.run(offset=128, length=8192)
 
 wb.regs.usb2_control_enable.write(1)
 
