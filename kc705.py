@@ -14,6 +14,8 @@ from liteeth.frontend.etherbone import LiteEthEtherbone
 
 from litex.boards.platforms import kc705
 
+from litescope import LiteScopeAnalyzer
+
 
 _usb3_io = [
     # HiTechGlobal USB3.0 FMC P1 connector
@@ -131,6 +133,10 @@ class BaseSoC(SoCCore):
 
 
 class USBSoC(BaseSoC):
+    csr_map = {
+        "analyzer": 20
+    }
+    csr_map.update(BaseSoC.csr_map)
     def __init__(self, platform):
         BaseSoC.__init__(self, platform)
 
@@ -199,14 +205,37 @@ class USBSoC(BaseSoC):
             Instance("BUFG", i_I=phy_pipe_quarter_clk_pll, o_O=phy_pipe_quarter_clk),
             Instance("BUFG", i_I=phy_pipe_tx_clk_pll, o_O=phy_pipe_tx_clk),
             Instance("BUFG", i_I=phy_pipe_tx_clk_phase_pll, o_O=phy_pipe_tx_clk_phase),
-            Instance("IDELAYCTRL", i_REFCLK=ClockSignal(), i_RST=0) # FIXME
+            #Instance("IDELAYCTRL", i_REFCLK=ClockSignal(), i_RST=0) # FIXME
         ]
 
         # usb2 core
+        self.clock_domains.cd_usb2 = ClockDomain()
+        self.comb += self.cd_usb2.clk.eq(usb_clkout)
+
+        reset_n_out = Signal()
+
+        stat_connected = Signal()
+        stat_fs = Signal()
+        stat_hs = Signal()
+        stat_configured = Signal()
+
+        vend_req_act = Signal()
+        vend_req_request = Signal(8)
+        vend_req_val = Signal(16)
+
+        err_crc_pid = Signal()
+        err_crc_tok = Signal()
+        err_crc_pkt = Signal()
+        err_pid_out_of_seq = Signal()
+        err_setup_pkt = Signal()
+
+        dbg_frame_num = Signal(11)
+        dbg_linestate = Signal(2)
+
         self.specials += Instance("usb2_top",
             i_ext_clk=usb_clkout, # TODO
             i_reset_n=1, # TODO
-            #o_reset_n_out=,
+            o_reset_n_out=reset_n_out,
 
             i_phy_ulpi_clk=usb_ulpi.clk,
             io_phy_ulpi_d=usb_ulpi.data,
@@ -217,10 +246,10 @@ class USBSoC(BaseSoC):
             i_opt_disable_all=0, # TODO
             i_opt_enable_hs=0, # TODO
             i_opt_ignore_vbus=0, # TODO
-            #o_stat_connected=, # TODO
-            #o_stat_fs=, # TODO
-            #o_stat_hs=, # TODO
-            #o_stat_configured=, # TODO
+            o_stat_connected=stat_connected,
+            o_stat_fs=stat_fs,
+            o_stat_hs=stat_hs,
+            o_stat_configured=stat_configured,
 
             i_buf_in_addr=0, # TODO
             i_buf_in_data=0, # TODO
@@ -236,22 +265,48 @@ class USBSoC(BaseSoC):
             i_buf_out_arm=0, # TODO
             #o_buf_out_arm_ack=, # TODO
 
-            #o_vend_req_act=, # TODO
-            #o_vend_req_request=, # TODO
-            #o_vend_req_val=, # TODO
+            o_vend_req_act=vend_req_act,
+            o_vend_req_request=vend_req_request,
+            o_vend_req_val=vend_req_val,
 
-            #o_err_crc_pid=, # TODO
-            #o_err_crc_tok=, # TODO
-            #o_err_crc_pkt=, # TODO
-            #o_err_pid_out_of_seq=, # TODO
-            #o_err_setup_pkt=, # TODO
+            o_err_crc_pid=err_crc_pid,
+            o_err_crc_tok=err_crc_tok,
+            o_err_crc_pkt=err_crc_pkt,
+            o_err_pid_out_of_seq=err_pid_out_of_seq,
+            o_err_setup_pkt=err_setup_pkt,
 
-            #o_dbg_frame_num=, # TODO
-            #o_dbg_linestate= # TODO
+            o_dbg_frame_num=dbg_frame_num,
+            o_dbg_linestate=dbg_linestate
         )
         platform.add_verilog_include_path(os.path.join("core"))
         platform.add_verilog_include_path(os.path.join("core", "usb2"))
         platform.add_source_dir(os.path.join("core", "usb2"))
+
+
+        # usb2 debug
+        analyzer_signals = [
+            reset_n_out,
+
+            stat_connected,
+            stat_fs,
+            stat_hs,
+            stat_configured,
+
+            vend_req_act,
+            vend_req_request,
+            vend_req_val,
+
+            err_crc_pid,
+            err_crc_tok,
+            err_crc_pkt,
+            err_pid_out_of_seq,
+            err_setup_pkt,
+
+            dbg_frame_num,
+            dbg_linestate
+        ]
+        self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="usb2")
+
 
         # usb3 core
 
@@ -355,6 +410,9 @@ class USBSoC(BaseSoC):
                 i_C=ClockSignal(), i_CE=1, i_S=0, i_R=0,
                 i_D1=phy_pipe_tx_datak[i], i_D2=phy_pipe_tx_datak[2+i], o_Q=usb_pipe_data.tx_datak[i],
             )
+
+    def do_exit(self, vns):
+        self.analyzer.export_csv(vns, "test/analyzer.csv")
 
 
 def main():
