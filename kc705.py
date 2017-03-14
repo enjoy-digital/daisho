@@ -217,10 +217,6 @@ class USBSoC(BaseSoC):
             class USB2Control(Module, AutoCSR):
                 def __init__(self):
                     self.enable = CSRStorage()
-                    self.opt_disable_all = CSRStorage()
-                    self.opt_enable_hs = CSRStorage()
-                    self.opt_ignore_vbus = CSRStorage()
-
 
             self.submodules.usb2_control = USB2Control()
 
@@ -259,9 +255,9 @@ class USBSoC(BaseSoC):
                 o_phy_ulpi_stp=usb_ulpi.stp,
                 i_phy_ulpi_nxt=usb_ulpi.nxt,
 
-                i_opt_disable_all=self.usb2_control.opt_disable_all.storage,
-                i_opt_enable_hs=self.usb2_control.opt_enable_hs.storage,
-                i_opt_ignore_vbus=self.usb2_control.opt_ignore_vbus.storage,
+                i_opt_disable_all=0,
+                i_opt_enable_hs=1,
+                i_opt_ignore_vbus=1,
                 o_stat_connected=stat_connected,
                 o_stat_fs=stat_fs,
                 o_stat_hs=stat_hs,
