@@ -3,6 +3,7 @@
 from litex.gen import *
 from litex.build.generic_platform import *
 
+from litex.soc.interconnect.csr import *
 from litex.soc.integration.soc_core import *
 from litex.soc.integration.builder import *
 from litex.soc.cores.uart.bridge import UARTWishboneBridge
@@ -134,27 +135,28 @@ class BaseSoC(SoCCore):
 
 class USBSoC(BaseSoC):
     csr_map = {
-        "analyzer": 20
+        "analyzer": 20,
+        "usb2_control": 21
     }
     csr_map.update(BaseSoC.csr_map)
     def __init__(self, platform, with_usb2=True, with_usb3=False):
         BaseSoC.__init__(self, platform)
 
         # usb ios
-        usb_clkout = platform.request("usb_clkout")
         usb_reset_n = platform.request("usb_reset_n")
         if with_usb2:
             usb_ulpi = platform.request("usb_ulpi")
         if with_usb3:
+            usb_clkout = platform.request("usb_clkout")
             usb_pipe_ctrl = platform.request("usb_pipe_ctrl")
             usb_pipe_status = platform.request("usb_pipe_status")
             usb_pipe_data = platform.request("usb_pipe_data")
 
         # TODO: - add ddr on usb_pipe_data
         #       - others signals to drive?
-        self.comb += [
-            usb_reset_n.eq(1),
-        ]
+        usb2_reset_n = Signal(reset=1)
+        usb3_reset_n = Signal(reset=1)
+        self.comb += usb_reset_n.eq(usb2_reset_n & usb3_reset_n)
 
         # phy pipe pll
         if with_usb3:
@@ -212,8 +214,18 @@ class USBSoC(BaseSoC):
 
         # usb2 core
         if with_usb2:
+            class USB2Control(Module, AutoCSR):
+                def __init__(self):
+                    self.enable = CSRStorage()
+                    self.opt_disable_all = CSRStorage()
+                    self.opt_enable_hs = CSRStorage()
+                    self.opt_ignore_vbus = CSRStorage()
+
+
+            self.submodules.usb2_control = USB2Control()
+
             self.clock_domains.cd_usb2 = ClockDomain()
-            self.comb += self.cd_usb2.clk.eq(usb_clkout)
+            self.comb += self.cd_usb2.clk.eq(usb_ulpi.clk)
 
             reset_n_out = Signal()
 
@@ -235,9 +247,10 @@ class USBSoC(BaseSoC):
             dbg_frame_num = Signal(11)
             dbg_linestate = Signal(2)
 
+            self.comb += usb2_reset_n.eq(self.usb2_control.enable.storage)
             self.specials += Instance("usb2_top",
-                i_ext_clk=usb_clkout, # TODO
-                i_reset_n=1, # TODO
+                i_ext_clk=ClockSignal(),
+                i_reset_n=usb2_reset_n,
                 o_reset_n_out=reset_n_out,
 
                 i_phy_ulpi_clk=usb_ulpi.clk,
@@ -246,9 +259,9 @@ class USBSoC(BaseSoC):
                 o_phy_ulpi_stp=usb_ulpi.stp,
                 i_phy_ulpi_nxt=usb_ulpi.nxt,
 
-                i_opt_disable_all=0, # TODO
-                i_opt_enable_hs=0, # TODO
-                i_opt_ignore_vbus=0, # TODO
+                i_opt_disable_all=self.usb2_control.opt_disable_all.storage,
+                i_opt_enable_hs=self.usb2_control.opt_enable_hs.storage,
+                i_opt_ignore_vbus=self.usb2_control.opt_ignore_vbus.storage,
                 o_stat_connected=stat_connected,
                 o_stat_fs=stat_fs,
                 o_stat_hs=stat_hs,
@@ -288,8 +301,6 @@ class USBSoC(BaseSoC):
 
             # usb2 debug
             analyzer_signals = [
-                usb_clkout,
-
                 usb_ulpi.clk,
                 usb_ulpi.data,
                 usb_ulpi.dir,
@@ -316,7 +327,7 @@ class USBSoC(BaseSoC):
                 dbg_frame_num,
                 dbg_linestate
             ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="sys")
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="usb2")
 
 
         # usb3 core
