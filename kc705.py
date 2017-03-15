@@ -216,7 +216,8 @@ class USBSoC(BaseSoC):
         if with_usb2:
             class USB2Control(Module, AutoCSR):
                 def __init__(self):
-                    self.enable = CSRStorage()
+                    self.phy_enable = CSRStorage()
+                    self.core_enable = CSRStorage()
 
             self.submodules.usb2_control = USB2Control()
 
@@ -244,10 +245,10 @@ class USBSoC(BaseSoC):
             dbg_linestate = Signal(2)
             dbg_state = Signal(7)
 
-            self.comb += usb2_reset_n.eq(self.usb2_control.enable.storage)
+            self.comb += usb2_reset_n.eq(self.usb2_control.phy_enable.storage)
             self.specials += Instance("usb2_top",
                 i_ext_clk=ClockSignal(),
-                i_reset_n=usb2_reset_n,
+                i_reset_n=self.usb2_control.core_enable.storage,
                 o_reset_n_out=reset_n_out,
 
                 i_phy_ulpi_clk=usb_ulpi.clk,
@@ -299,6 +300,10 @@ class USBSoC(BaseSoC):
 
             # usb2 debug
             analyzer_signals = [
+                dbg_frame_num,
+                dbg_linestate,
+                dbg_state,
+
                 usb2_reset_n,
                 reset_n_out,
 
@@ -321,13 +326,9 @@ class USBSoC(BaseSoC):
                 err_crc_tok,
                 err_crc_pkt,
                 err_pid_out_of_seq,
-                err_setup_pkt,
-
-                dbg_frame_num,
-                dbg_linestate,
-                dbg_state
+                err_setup_pkt
             ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 8192, cd="usb2")
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 8192, cd="sys")
 
 
         # usb3 core

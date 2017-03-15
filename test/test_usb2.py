@@ -9,22 +9,25 @@ wb.open()
 
 # # #
 
+wb.regs.usb2_control_phy_enable.write(1)
+wb.regs.usb2_control_core_enable.write(0)
+
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-#analyzer.configure_trigger(cond={"soc_usb2_reset_n" : 1})
-analyzer.configure_trigger(cond={"soc_dbg_state" : 2})
+#analyzer.configure_trigger(cond={"soc_usb2_reset_n" : 0})
+analyzer.configure_trigger(cond={"soc_dbg_state" : 20})
 analyzer.configure_subsampler(1)
 analyzer.run(offset=128, length=8192)
 
-wb.regs.usb2_control_enable.write(1)
+wb.regs.usb2_control_phy_enable.write(1)
+wb.regs.usb2_control_core_enable.write(1)
 
 while not analyzer.done():
     pass
 analyzer.upload()
 analyzer.save("dump.vcd")
 
-time.sleep(2)
-
-wb.regs.usb2_control_enable.write(0)
+wb.regs.usb2_control_phy_enable.write(0)
+wb.regs.usb2_control_core_enable.write(0)
 
 # # #
 
