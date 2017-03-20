@@ -216,8 +216,7 @@ class USBSoC(BaseSoC):
         if with_usb2:
             class USB2Control(Module, AutoCSR):
                 def __init__(self):
-                    self.phy_enable = CSRStorage()
-                    self.core_enable = CSRStorage()
+                    self.enable = CSRStorage()
 
             self.submodules.usb2_control = USB2Control()
 
@@ -245,10 +244,10 @@ class USBSoC(BaseSoC):
             dbg_linestate = Signal(2)
             dbg_state = Signal(7)
 
-            self.comb += usb2_reset_n.eq(self.usb2_control.phy_enable.storage)
+            self.comb += usb2_reset_n.eq(self.usb2_control.enable.storage)
             self.specials += Instance("usb2_top",
                 i_ext_clk=ClockSignal(),
-                i_reset_n=self.usb2_control.core_enable.storage,
+                i_reset_n=usb2_reset_n,
                 o_reset_n_out=reset_n_out,
 
                 i_phy_ulpi_clk=usb_ulpi.clk,
