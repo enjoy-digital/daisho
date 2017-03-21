@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2012-2013 Marshall H.
 // All rights reserved.
-// This code is released under the terms of the simplified BSD license. 
+// This code is released under the terms of the simplified BSD license.
 // See LICENSE.TXT for details.
 //
 
@@ -56,7 +56,8 @@ output	reg				err_crc_pkt,
 output	reg				err_pid_out_of_seq,
 
 output	reg		[10:0]	dbg_frame_num,
-output	wire	[2:0]	dbg_pkt_type
+output	wire	[2:0]	dbg_pkt_type,
+output  wire    [5:0]   dbg_state
 
 );
 
@@ -64,7 +65,7 @@ output	wire	[2:0]	dbg_pkt_type
 	reg 			reset_1, reset_2;
 	reg				in_act_1;
 	reg				out_nxt_1, out_nxt_2;
-	
+
 	// pid input
 	wire	[3:0]	pid					= in_byte[7:4];
 	wire			pid_valid 			= (pid == ~in_byte[3:0]);
@@ -72,7 +73,7 @@ output	wire	[2:0]	dbg_pkt_type
 	reg		[3:0]	pid_last;
 	// pid output
 	reg		[3:0]	pid_send;
-	
+
 	parameter [3:0]	PID_TOKEN_OUT		= 4'hE,
 					PID_TOKEN_IN		= 4'h6,
 					PID_TOKEN_SOF		= 4'hA,
@@ -91,68 +92,68 @@ output	wire	[2:0]	dbg_pkt_type
 					PID_SPEC_LPM		= 4'hF;
 
 	reg		[2:0]	pkt_type;
-	
+
 	parameter [2:0]	PKT_TYPE_UNDEF		= 3'h0,
 					PKT_TYPE_TOKEN		= 3'h1,
 					PKT_TYPE_DATA		= 3'h2,
 					PKT_TYPE_HAND		= 3'h3,
 					PKT_TYPE_SPEC		= 3'h4;
-	
+
 	reg		[15:0]	packet_crc;
-	
+
 	parameter [1:0]	EP_MODE_CONTROL		= 2'd0,
 					EP_MODE_ISOCH		= 2'd1,
 					EP_MODE_BULK		= 2'd2,
 					EP_MODE_INTERRUPT	= 2'd3;
-					
+
 	wire	[3:0]	data_pid 			= 	data_toggle == DATA_TOGGLE_1 ? PID_DATA_1 :
 											data_toggle == DATA_TOGGLE_2 ? PID_DATA_2 :
 											data_toggle == DATA_TOGGLE_M ? PID_DATA_M : PID_DATA_0;
-										
+
 	parameter [1:0]	DATA_TOGGLE_0		= 2'b00;
 	parameter [1:0]	DATA_TOGGLE_1		= 2'b01;
 	parameter [1:0]	DATA_TOGGLE_2		= 2'b10;
 	parameter [1:0]	DATA_TOGGLE_M		= 2'b11;
-	
-	// usb token data has reversed bitfields. in addition, the data is sent 
+
+	// usb token data has reversed bitfields. in addition, the data is sent
 	// in reverse bit order, which is reversed per-byte by the PHY.
-	// these are not valid for SOF 
+	// these are not valid for SOF
 	reg		[15:0]	packet_token;
 	wire	[6:0]	packet_token_addr	= packet_token[14:8] /* synthesis keep */;
 	reg		[6:0]	packet_token_addr_stored;
 	wire	[3:0]	packet_token_endp	= {packet_token[2:0], packet_token[15]} /* synthesis keep */;
 	wire	[4:0]	packet_token_crc5 	= packet_token[7:3];
 	wire	[10:0]	packet_token_frame	= {packet_token[2:0], packet_token[15:8]};
-	
+
 	reg		[10:0]	dc;		// delay counter
 	reg		[10:0]	bc;		// byte counter
-	
+
 	reg		[6:0]	local_dev_addr;
 	// TODO flatten
 	reg		[15:0]	crc16, crc16_1, crc16_2;
-	wire	[15:0]	crc16_fix = ~{crc16_2[8], crc16_2[9], crc16_2[10], crc16_2[11], 
+	wire	[15:0]	crc16_fix = ~{crc16_2[8], crc16_2[9], crc16_2[10], crc16_2[11],
 									crc16_2[12], crc16_2[13], crc16_2[14], crc16_2[15],
-									crc16_2[0], crc16_2[1], crc16_2[2], crc16_2[3], 
-									crc16_2[4], crc16_2[5], crc16_2[6], crc16_2[7]}; 
-								
-	wire	[15:0]	crc16_fix_out = ~{crc16[8], crc16[9], crc16[10], crc16[11], 
+									crc16_2[0], crc16_2[1], crc16_2[2], crc16_2[3],
+									crc16_2[4], crc16_2[5], crc16_2[6], crc16_2[7]};
+
+	wire	[15:0]	crc16_fix_out = ~{crc16[8], crc16[9], crc16[10], crc16[11],
 									crc16[12], crc16[13], crc16[14], crc16[15],
-									crc16[0], crc16[1], crc16[2], crc16[3], 
-									crc16[4], crc16[5], crc16[6], crc16[7]}; 
+									crc16[0], crc16[1], crc16[2], crc16[3],
+									crc16[4], crc16[5], crc16[6], crc16[7]};
 
 	// two byte delay for incoming data
 	//
 	assign			buf_in_addr = buf_in_addr_0;
 	assign			buf_in_data = buf_in_data_0;
 	assign			buf_in_wren = buf_in_wren_0 && (state == ST_IN_1) && (pkt_type == PKT_TYPE_DATA);
-	
+
 	reg		[8:0]	buf_in_addr_2, buf_in_addr_1, buf_in_addr_0;
 	reg		[7:0]	buf_in_data_1, buf_in_data_0;
 	reg				buf_in_wren_1, buf_in_wren_0;
 
 	reg				buf_in_ready_latch;
 	reg				buf_out_ready_latch;
-	
+
 	reg				out_byte_buf;
 	reg		[7:0]	out_byte_out;
 	reg		[1:0]	out_byte_crc;
@@ -161,8 +162,9 @@ output	wire	[2:0]	dbg_pkt_type
 									out_byte_buf ? buf_out_q : out_byte_out;
 	//reg		[9:0]	bytes_tosend /* synthesis noprune */;
 	//reg		[9:0]	bytes_sent /* synthesis noprune */;
-	
+
 	reg		[5:0]	state;
+	assign dbg_state = state;
 	parameter [5:0]	ST_RST_0			= 6'd0,
 					ST_RST_1			= 6'd1,
 					ST_IDLE				= 6'd10,
@@ -178,32 +180,32 @@ output	wire	[2:0]	dbg_pkt_type
 					ST_OUT_1			= 6'd41,
 					ST_OUT_2			= 6'd42,
 					ST_OUT_3			= 6'd43;
-					
+
 	assign dbg_pkt_type = pkt_type;
-	
+
 always @(posedge phy_clk) begin
 
 	in_act_1 <= in_act;
 	out_nxt_1 <= out_nxt;
 	out_nxt_2 <= out_nxt_1;
 	{reset_2, reset_1} <= {reset_1, reset_n};
-	
+
 	if(in_latch) begin
 		// delay incoming data by 2 bytes
 		// we don't know incoming packet size, only that the last two bytes are CRC
 		{buf_in_addr_1, buf_in_addr_0} <= {buf_in_addr_2, buf_in_addr_1};
 		{buf_in_data_1, buf_in_data_0} <= {in_byte, buf_in_data_1};
-		{buf_in_wren_1, buf_in_wren_0} <= {in_latch && (bc < 512) && buf_in_ready_latch && 
+		{buf_in_wren_1, buf_in_wren_0} <= {in_latch && (bc < 512) && buf_in_ready_latch &&
 											(packet_token_addr_stored == dev_addr), buf_in_wren_1};
 	end
-	
+
 	dc <= dc + 1'b1;
-	
+
 	out_stp <= 0;
 	buf_in_commit <= 0;
 	buf_out_arm <= 0;
 	data_toggle_act <= 0;
-	
+
 	case(state)
 	ST_RST_0: begin
 		// reset state
@@ -217,18 +219,18 @@ always @(posedge phy_clk) begin
 		pid_stored <= 0;
 		pid_last <= 0;
 		local_dev_addr <= 0;
-		
+
 		buf_in_commit <= 0;
 		buf_out_arm <= 0;
-		
+
 		state <= ST_RST_1;
 	end
 	ST_RST_1: begin
 		// housekeeping goes here
 		state <= ST_IDLE;
 	end
-	
-	
+
+
 	ST_IDLE: begin
 		// idle state
 
@@ -238,33 +240,33 @@ always @(posedge phy_clk) begin
 			if(in_latch) begin
 				// check validity of PID
 				if(pid_valid) begin
-				
+
 					// save it for later
 					pid_stored <= pid;
 					pid_last <= pid_stored;
-					
-					case(pid) 
-					PID_TOKEN_OUT, 	
-					PID_TOKEN_IN, 
-					PID_TOKEN_SOF, 
+
+					case(pid)
+					PID_TOKEN_OUT,
+					PID_TOKEN_IN,
+					PID_TOKEN_SOF,
 					PID_TOKEN_PING,
 					PID_TOKEN_SETUP: pkt_type <= PKT_TYPE_TOKEN; // expect 16 bits of data
-					
-					PID_DATA_0,	
-					PID_DATA_1, 
-					PID_DATA_2,	
+
+					PID_DATA_0,
+					PID_DATA_1,
+					PID_DATA_2,
 					PID_DATA_M:  	pkt_type <= PKT_TYPE_DATA; 	// variable length
-					
-					PID_HAND_ACK, 
-					PID_HAND_NAK, 
-					PID_HAND_STALL, 
+
+					PID_HAND_ACK,
+					PID_HAND_NAK,
+					PID_HAND_STALL,
 					PID_HAND_NYET:  pkt_type <= PKT_TYPE_HAND; 	// handshaking, very short
-					
-					PID_SPEC_PREERR, 
-					PID_SPEC_SPLIT, 
+
+					PID_SPEC_PREERR,
+					PID_SPEC_SPLIT,
 					PID_SPEC_LPM:  	pkt_type <= PKT_TYPE_SPEC; 	// special cases
 					endcase
-					
+
 					// reset byte count and latch in packet
 					bc <= 0;
 					crc16 <= 16'hffff;
@@ -279,42 +281,42 @@ always @(posedge phy_clk) begin
 			end
 		end
 	end
-	
+
 	ST_IN_1: begin
 		// read in packet data
 		crc16_byte_sel <= 0;
-			
+
 		if(in_latch) begin
 			bc <= bc + 1'b1;
 			buf_in_addr_2 <= buf_in_addr_2 + 1'b1;
-			
+
 			// advance CRCs
 			crc16 <= next_crc16;
 			crc16_1 <= crc16;
 			crc16_2 <= crc16_1;
-			
+
 			// this only handles TOKEN packets
 			if(pkt_type == PKT_TYPE_TOKEN) begin
 				case(bc)
 				0: packet_token[15:8] <= in_byte;
-				1: begin 
+				1: begin
 					packet_token[7:0] <= in_byte;
 					crc5_data <= {in_byte[2:0], packet_token[15:8]};
-					// finished, process TOKEN 
+					// finished, process TOKEN
 					state <= ST_IN_TOK;
 				end
 				endcase
 			end
-			
+
 			// setup packets are 10 bytes long (8 without CRC)
 			packet_crc <= {packet_crc[7:0], in_byte};
 		end
-		
+
 		// detect EOP
 		if(~in_act) begin
 			// default is to IDLE
 			state <= ST_IDLE;
-			
+
 			// data toggle
 			if(packet_token_addr_stored == local_dev_addr) begin
 				if(pid_stored == PID_HAND_ACK) begin
@@ -328,7 +330,7 @@ always @(posedge phy_clk) begin
 					end
 				end
 			end
-			
+
 			if(packet_token_addr == local_dev_addr) begin
 				// was it a zero-length OUT?
 				if(pid_last == PID_TOKEN_OUT && bc == 2) begin
@@ -345,26 +347,26 @@ always @(posedge phy_clk) begin
 			end
 		end
 	end
-	
+
 	ST_IN_TOK: begin
 		// default is to wait for EOP
 		state <= ST_WAIT_EOP;
-		
+
 		// next default is confirm token CRC5
 		if(packet_token_crc5 != next_crc5) begin
 			err_crc_tok <= 1;
 			state <= ST_PRE_EOP;
 		end
-		
+
 		case(pid_stored)
 		PID_TOKEN_SOF: begin
 			dbg_frame_num <= packet_token_frame;
 		end
 		endcase
-		
+
 		// only parse tokens at our address
 		if(packet_token_addr == local_dev_addr) begin
-		
+
 			case(pid_stored)
 			PID_TOKEN_IN: begin
 				// switch protocol layer to proper endpoint
@@ -385,14 +387,14 @@ always @(posedge phy_clk) begin
 				state <= ST_IN_TOK_PING;
 			end
 			endcase
-			
+
 			// in case of IN/OUT/SETUP/PING
 			if(pid_stored != PID_TOKEN_SOF) begin
 				// tell protocol layer which endpoint was selected
 				sel_endp <= packet_token_endp;
 			end
 		end
-		
+
 		if(pid_stored != PID_TOKEN_SOF) begin
 			// save intended device address for later data stages
 			packet_token_addr_stored <= packet_token_addr;
@@ -405,10 +407,10 @@ always @(posedge phy_clk) begin
 			pid_send <= buf_in_ready ? PID_HAND_ACK : PID_HAND_NAK;
 			bc <= 0;
 			state <= ST_OUT_0;
-		end		
+		end
 	end
-	
-	ST_PRE_EOP: begin				
+
+	ST_PRE_EOP: begin
 		state <= ST_WAIT_EOP;
 	end
 	ST_WAIT_EOP: begin
@@ -416,8 +418,8 @@ always @(posedge phy_clk) begin
 		out_latch <= 0;
 		if(~in_act) state <= ST_IDLE;
 	end
-	
-	
+
+
 	ST_DATA_CRC: begin
 		// check CRC16
 		if(packet_crc == crc16_fix) begin
@@ -433,8 +435,8 @@ always @(posedge phy_clk) begin
 			state <= ST_WAIT_EOP;
 		end
 	end
-	
-	
+
+
 	ST_OUT_PRE_0: begin
 		dc <= 0;
 		pid_send <= data_pid;
@@ -442,7 +444,7 @@ always @(posedge phy_clk) begin
 	end
 	ST_OUT_PRE_1: begin
 		// wait for protocol FSM/endpoint FSM to be ready (usually already is)
-			
+
 		if(buf_out_hasdata) begin
 			// good to go
 			bc <= buf_out_len + 11'h2;
@@ -467,7 +469,7 @@ always @(posedge phy_clk) begin
 	end
 	ST_OUT_0: begin
 		// send packet through ULPI
-		
+
 		// wait for any rx to complete
 		crc16_byte_sel <= 1;
 		crc16 <= 16'hffff;
@@ -516,7 +518,7 @@ always @(posedge phy_clk) begin
 				// switch mux to bram
 				out_byte_buf <= 1;
 			end
-			
+
 			buf_out_addr <= buf_out_addr + 1'b1;
 			bc <= bc - 1'b1;
 
@@ -527,12 +529,12 @@ always @(posedge phy_clk) begin
 				crc16 <= next_crc16;
 				//bytes_sent <= bytes_sent + 1'b1;
 			end
-				
+
 			if(bc == 2) out_byte_crc <= 2'b11;
 			if(bc == 1) out_byte_crc <= 2'b10;
 		end
-		if(~out_nxt & out_nxt_1 ) begin 
-			// falling edge 
+		if(~out_nxt & out_nxt_1 ) begin
+			// falling edge
 			// keep this byte
 			out_byte_out <= buf_out_q;
 			out_byte_buf <= 0;
@@ -540,7 +542,7 @@ always @(posedge phy_clk) begin
 	end
 	default: state <= ST_RST_0;
 	endcase
-	
+
 	if(~reset_2) begin
 		// reset
 		state <= ST_RST_0;
@@ -553,7 +555,7 @@ end
 //
 	wire	[4:0]	next_crc5;
 	reg		[10:0]	crc5_data;
-	
+
 usb2_crc5 ic5 (
 	.c			( 5'h1F ),
 	.data		( crc5_data ),
@@ -566,8 +568,8 @@ usb2_crc5 ic5 (
 	wire	[15:0]	next_crc16;
 	reg				crc16_byte_sel;
 	wire	[7:0]	crc16_byte	= crc16_byte_sel ? out_byte : in_byte;
-	
-usb2_crc16 ic16 ( 
+
+usb2_crc16 ic16 (
 	.c			( crc16 ),
 	.data		( crc16_byte ),
 	.next_crc	( next_crc16 )

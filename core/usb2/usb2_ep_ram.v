@@ -1,12 +1,13 @@
+// 1024x8b ram (1 write / 1 read / 2 clocks)
+// read latency: 1 clock
+
 module usb2_ep_ram(
 	input wr_clk,
-	input wr_rst,
 	input wr_we,
 	input [9:0] wr_adr,
 	input [7:0] wr_dat_w,
 
 	input rd_clk,
-	input rd_rst,
 	input [9:0] rd_adr,
 	output [7:0] rd_dat_r
 );

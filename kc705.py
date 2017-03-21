@@ -238,6 +238,8 @@ class USBSoC(BaseSoC):
 
             self.clock_domains.cd_usb2 = ClockDomain()
             self.comb += self.cd_usb2.clk.eq(usb_ulpi.clk)
+            self.platform.add_period_constraint(self.cd_usb2.clk, 16.667)
+
 
             reset_n_out = Signal()
 
@@ -258,7 +260,41 @@ class USBSoC(BaseSoC):
 
             dbg_frame_num = Signal(11)
             dbg_linestate = Signal(2)
-            dbg_state = Signal(7)
+            dbg_ulpi_state = Signal(7)
+            dbg_packet_state = Signal(7)
+
+            dbg_ulpi_out_act = Signal()
+            dbg_ulpi_out_byte = Signal(8)
+            dbg_ulpi_out_latch = Signal()
+            dbg_ulpi_in_nxt = Signal()
+            dbg_ulpi_in_cts = Signal()
+            dbg_ulpi_in_byte = Signal(8)
+            dbg_ulpi_in_latch = Signal()
+            dbg_ulpi_in_stp = Signal()
+
+            dbg_prot_sel_endp = Signal(4)
+            dbg_prot_buf_in_addr = Signal(9)
+            dbg_prot_buf_in_data = Signal(8)
+            dbg_prot_buf_in_wren = Signal()
+            dbg_prot_buf_in_ready = Signal()
+            dbg_prot_buf_in_commit = Signal()
+            dbg_prot_buf_in_commit_len = Signal(10)
+            dbg_prot_buf_in_commit_ack = Signal()
+            dbg_prot_buf_out_addr = Signal(9)
+            dbg_prot_buf_out_q = Signal(8)
+            dbg_prot_buf_out_len = Signal(10)
+            dbg_prot_buf_out_hasdata = Signal()
+            dbg_prot_buf_out_arm = Signal()
+            dbg_prot_buf_out_arm_ack = Signal()
+            dbg_prot_dev_addr = Signal(7)
+            dbg_prot_endp_mode = Signal(2)
+            dbg_prot_data_toggle_act = Signal()
+            dbg_prot_data_toggle = Signal(2)
+
+            dbg_ep0_state_in = Signal(6)
+            dbg_ep0_state_out = Signal(6)
+            dbg_ep0_packet_setup = Signal(80)
+            dbg_ep0_rom_adr = Signal(8)
 
             self.comb += usb2_reset_n.eq(self.usb2_control.phy_enable)
             self.specials += Instance("usb2_top",
@@ -306,7 +342,41 @@ class USBSoC(BaseSoC):
 
                 o_dbg_frame_num=dbg_frame_num,
                 o_dbg_linestate=dbg_linestate,
-                o_dbg_state=dbg_state
+                o_dbg_ulpi_state=dbg_ulpi_state,
+                o_dbg_packet_state=dbg_packet_state,
+
+                o_dbg_ulpi_out_act=dbg_ulpi_out_act,
+                o_dbg_ulpi_out_byte=dbg_ulpi_out_byte,
+                o_dbg_ulpi_out_latch=dbg_ulpi_out_latch,
+                o_dbg_ulpi_in_nxt=dbg_ulpi_in_nxt,
+                o_dbg_ulpi_in_cts=dbg_ulpi_in_cts,
+                o_dbg_ulpi_in_byte=dbg_ulpi_in_byte,
+                o_dbg_ulpi_in_latch=dbg_ulpi_in_latch,
+                o_dbg_ulpi_in_stp=dbg_ulpi_in_stp,
+
+                o_dbg_prot_sel_endp= dbg_prot_sel_endp,
+                o_dbg_prot_buf_in_addr=dbg_prot_buf_in_addr,
+                o_dbg_prot_buf_in_data=dbg_prot_buf_in_data,
+                o_dbg_prot_buf_in_wren=dbg_prot_buf_in_wren,
+                o_dbg_prot_buf_in_ready=dbg_prot_buf_in_ready,
+                o_dbg_prot_buf_in_commit=dbg_prot_buf_in_commit,
+                o_dbg_prot_buf_in_commit_len=dbg_prot_buf_in_commit_len,
+                o_dbg_prot_buf_in_commit_ack=dbg_prot_buf_in_commit_ack,
+                o_dbg_prot_buf_out_addr=dbg_prot_buf_out_addr,
+                o_dbg_prot_buf_out_q=dbg_prot_buf_out_q,
+                o_dbg_prot_buf_out_len=dbg_prot_buf_out_len,
+                o_dbg_prot_buf_out_hasdata=dbg_prot_buf_out_hasdata,
+                o_dbg_prot_buf_out_arm=dbg_prot_buf_out_arm,
+                o_dbg_prot_buf_out_arm_ack=dbg_prot_buf_out_arm_ack,
+                o_dbg_prot_dev_addr=dbg_prot_dev_addr,
+                o_dbg_prot_endp_mode=dbg_prot_endp_mode,
+                o_dbg_prot_data_toggle_act=dbg_prot_data_toggle_act,
+                o_dbg_prot_data_toggle=dbg_prot_data_toggle,
+
+                o_dbg_ep0_state_in=dbg_ep0_state_in,
+                o_dbg_ep0_state_out=dbg_ep0_state_out,
+                o_dbg_ep0_packet_setup=dbg_ep0_packet_setup,
+                o_dbg_ep0_rom_adr=dbg_ep0_rom_adr
             )
             platform.add_verilog_include_path(os.path.join("core"))
             platform.add_verilog_include_path(os.path.join("core", "usb2"))
@@ -315,33 +385,67 @@ class USBSoC(BaseSoC):
 
             # usb2 debug
             analyzer_signals = [
-                dbg_frame_num,
-                dbg_linestate,
-                dbg_state,
+#                dbg_frame_num,
+#                dbg_linestate,
+                dbg_ulpi_state,
+                dbg_packet_state,
 
-                usb2_reset_n,
-                reset_n_out,
+#                usb2_reset_n,
+#                reset_n_out,
+#
+#                usb_ulpi.clk,
+#                usb_ulpi.data,
+#                usb_ulpi.dir,
+#                usb_ulpi.stp,
+#                usb_ulpi.nxt,
+#
+#                stat_connected,
+#                stat_fs,
+#                stat_hs,
+#                stat_configured,
+#
+#                vend_req_act,
+#                vend_req_request,
+#                vend_req_val,
+#
+#                err_crc_pid,
+#                err_crc_tok,
+#                err_crc_pkt,
+#                err_pid_out_of_seq,
+#                err_setup_pkt,
 
-                usb_ulpi.clk,
-                usb_ulpi.data,
-                usb_ulpi.dir,
-                usb_ulpi.stp,
-                usb_ulpi.nxt,
+                dbg_ulpi_out_act,
+                dbg_ulpi_out_byte,
+                dbg_ulpi_out_latch,
+                dbg_ulpi_in_nxt,
+                dbg_ulpi_in_cts,
+                dbg_ulpi_in_byte,
+                dbg_ulpi_in_latch,
+                dbg_ulpi_in_stp,
 
-                stat_connected,
-                stat_fs,
-                stat_hs,
-                stat_configured,
+                dbg_prot_sel_endp,
+                dbg_prot_buf_in_addr,
+                dbg_prot_buf_in_data,
+                dbg_prot_buf_in_wren,
+                dbg_prot_buf_in_ready,
+                dbg_prot_buf_in_commit,
+                dbg_prot_buf_in_commit_len,
+                dbg_prot_buf_in_commit_ack,
+                dbg_prot_buf_out_addr,
+                dbg_prot_buf_out_q,
+                dbg_prot_buf_out_len,
+                dbg_prot_buf_out_hasdata,
+                dbg_prot_buf_out_arm,
+                dbg_prot_buf_out_arm_ack,
+                dbg_prot_dev_addr,
+                dbg_prot_endp_mode,
+                dbg_prot_data_toggle_act,
+                dbg_prot_data_toggle,
 
-                vend_req_act,
-                vend_req_request,
-                vend_req_val,
-
-                err_crc_pid,
-                err_crc_tok,
-                err_crc_pkt,
-                err_pid_out_of_seq,
-                err_setup_pkt
+                dbg_ep0_state_in,
+                dbg_ep0_state_out,
+                dbg_ep0_packet_setup,
+                dbg_ep0_rom_adr
             ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="usb2")
 

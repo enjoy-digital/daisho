@@ -1,10 +1,13 @@
+// 64x8b ram (1 write / 1 read / 1 clock)
+// read latency: 2 clocks
+
 module usb2_ep0in_ram(
 	input clk,
 	input wr_we,
 	input [5:0] wr_adr,
 	input [7:0] wr_dat_w,
 	input [5:0] rd_adr,
-	output [7:0] rd_dat_r
+	output reg [7:0] rd_dat_r
 
 );
 
@@ -17,8 +20,7 @@ end
 
 always @(posedge clk) begin
 	rd_adr_i <= rd_adr;
+	rd_dat_r = mem[rd_adr_i];
 end
-
-assign rd_dat_r = mem[rd_adr_i];
 
 endmodule

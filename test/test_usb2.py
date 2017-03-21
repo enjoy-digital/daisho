@@ -23,7 +23,7 @@ wb.regs.usb2_control_phy_enable.write(1)
 
 # trigger analyzer
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-analyzer.configure_trigger(cond={"soc_dbg_state" : 20})
+analyzer.configure_trigger(cond={"soc_dbg_ulpi_out_byte": 0xe9})
 analyzer.configure_subsampler(1)
 analyzer.run(offset=128, length=2048)
 

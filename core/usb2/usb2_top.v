@@ -54,8 +54,42 @@ output	wire			err_setup_pkt,
 
 output	wire	[10:0]	dbg_frame_num,
 output	wire	[1:0]	dbg_linestate,
-output  wire    [6:0]   dbg_state
+output  wire    [6:0]   dbg_ulpi_state,
+output  wire    [5:0]   dbg_packet_state,
 
+output	wire			dbg_ulpi_out_act,
+output	wire	[7:0]	dbg_ulpi_out_byte,
+output	wire 			dbg_ulpi_out_latch,
+output	wire			dbg_ulpi_in_nxt,
+output	wire			dbg_ulpi_in_cts,
+output	wire	[7:0]	dbg_ulpi_in_byte,
+output	wire 			dbg_ulpi_in_latch,
+output	wire			dbg_ulpi_in_stp,
+
+output wire	[3:0]	dbg_prot_sel_endp,
+output wire	[8:0]	dbg_prot_buf_in_addr,
+output wire	[7:0]	dbg_prot_buf_in_data,
+output wire			dbg_prot_buf_in_wren,
+output wire			dbg_prot_buf_in_ready,
+output wire			dbg_prot_buf_in_commit,
+output wire	[9:0]	dbg_prot_buf_in_commit_len,
+output wire			dbg_prot_buf_in_commit_ack,
+
+output wire	[8:0]	dbg_prot_buf_out_addr,
+output wire	[7:0]	dbg_prot_buf_out_q,
+output wire	[9:0]	dbg_prot_buf_out_len,
+output wire			dbg_prot_buf_out_hasdata,
+output wire			dbg_prot_buf_out_arm,
+output wire			dbg_prot_buf_out_arm_ack,
+output wire	[6:0]	dbg_prot_dev_addr,
+
+output wire	[1:0]	dbg_prot_endp_mode,
+output wire			dbg_prot_data_toggle_act,
+output wire	[1:0]	dbg_prot_data_toggle,
+output  wire	[5:0]	dbg_ep0_state_in,
+output  wire	[5:0]	dbg_ep0_state_out,
+output  wire	[79:0]	dbg_ep0_packet_setup,
+output  wire   [7:0]   dbg_ep0_rom_adr
 );
 
 	reg 			reset_1, reset_2;				// local reset
@@ -94,6 +128,15 @@ end
 	wire	[7:0]	ulpi_in_byte;
 	wire 			ulpi_in_latch;
 	wire			ulpi_in_stp;
+
+	assign dbg_ulpi_out_act = ulpi_out_act;
+	assign dbg_ulpi_out_byte = ulpi_out_byte;
+	assign dbg_ulpi_out_latch = ulpi_out_latch;
+	assign dbg_ulpi_in_nxt = ulpi_in_nxt;
+	assign dbg_ulpi_in_cts = ulpi_in_cts;
+	assign dbg_ulpi_in_byte = ulpi_in_byte;
+	assign dbg_ulpi_in_latch = ulpi_in_latch;
+	assign dbg_ulpi_in_stp = ulpi_in_stp;
 
 usb2_ulpi 	ia (
 	// reset signal frome external clock domain, must be synchronized
@@ -140,7 +183,7 @@ usb2_ulpi 	ia (
 	.pkt_in_stp		( ulpi_in_stp ),
 
 	.dbg_linestate 	( dbg_linestate ),
-	.dbg_state      ( dbg_state)
+	.dbg_state      ( dbg_ulpi_state)
 );
 
 
@@ -207,7 +250,8 @@ usb2_packet ip (
 	.err_crc_pkt		( err_crc_pkt ),
 	.err_pid_out_of_seq ( err_pid_out_of_seq ),
 
-	.dbg_frame_num	( dbg_frame_num )
+	.dbg_frame_num	( dbg_frame_num ),
+	.dbg_state (dbg_packet_state)
 );
 
 
@@ -237,6 +281,26 @@ usb2_packet ip (
 	wire	[1:0]	prot_endp_mode;
 	wire			prot_data_toggle_act;
 	wire	[1:0]	prot_data_toggle;
+
+
+assign dbg_prot_sel_endp = prot_sel_endp;
+assign dbg_prot_buf_in_addr = prot_buf_in_addr;
+assign dbg_prot_buf_in_data = prot_buf_in_data;
+assign dbg_prot_buf_in_wren = prot_buf_in_wren;
+assign dbg_prot_buf_in_ready = prot_buf_in_ready;
+assign dbg_prot_buf_in_commit = prot_buf_in_commit;
+assign dbg_prot_buf_in_commit_len = prot_buf_in_commit_len;
+assign dbg_prot_buf_in_commit_ack = prot_buf_in_commit_ack;
+assign dbg_prot_buf_out_addr = prot_buf_out_addr;
+assign dbg_prot_buf_out_q = prot_buf_out_q;
+assign dbg_prot_buf_out_len = prot_buf_out_len;
+assign dbg_prot_buf_out_hasdata = prot_buf_out_hasdata;
+assign dbg_prot_buf_out_arm = prot_buf_out_arm;
+assign dbg_prot_buf_out_arm_ack = prot_buf_out_arm_ack;
+assign dbg_prot_dev_addr = prot_dev_addr;
+assign dbg_prot_endp_mode = prot_endp_mode;
+assign dbg_prot_data_toggle_act = prot_data_toggle_act;
+assign dbg_prot_data_toggle = prot_data_toggle;
 
 usb2_protocol ipr (
 	.reset_n			( reset_n_out ),
@@ -295,7 +359,11 @@ usb2_protocol ipr (
 	// tell the rest of the USB controller about what
 	// our current device address is, assigned by host
 	.dev_addr			( prot_dev_addr ),
-	.configured			( stat_configured )
+	.configured			( stat_configured ),
+	.dbg_ep0_state_in   ( dbg_ep0_state_in),
+	.dbg_ep0_state_out  ( dbg_ep0_state_out),
+	.dbg_ep0_packet_setup  ( dbg_ep0_packet_setup),
+	.dbg_ep0_rom_adr ( dbg_ep0_rom_adr )
 );
 
 

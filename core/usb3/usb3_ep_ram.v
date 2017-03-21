@@ -1,3 +1,6 @@
+// 1024x32b ram (1 write / 1 read / 2 clocks)
+// read latency: 2 clocks
+
 module usb3_ep_ram(
 	input wr_clk,
 	input wr_rst,
@@ -8,7 +11,7 @@ module usb3_ep_ram(
 	input rd_clk,
 	input rd_rst,
 	input [9:0] rd_adr,
-	output [31:0] rd_dat_r
+	output reg [31:0] rd_dat_r
 );
 
 reg [31:0] mem[0:1023];
@@ -20,8 +23,7 @@ end
 
 always @(posedge rd_clk) begin
 	rd_adr_i <= rd_adr;
+	rd_dat_r = mem[rd_adr_i];
 end
-
-assign rd_dat_r = mem[rd_adr_i];
 
 endmodule
