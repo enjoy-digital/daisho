@@ -9,22 +9,32 @@ wb.open()
 
 # # #
 
+# use opt configuration similar to daisho
+wb.regs.usb2_control_opt_disable_all.write(0)
+wb.regs.usb2_control_opt_enable_hs.write(0)
+wb.regs.usb2_control_opt_ignore_vbus.write(0)
+
+# disable phy & core
+wb.regs.usb2_control_phy_enable.write(0)
+wb.regs.usb2_control_core_enable.write(0)
+
+# enable phy
+wb.regs.usb2_control_phy_enable.write(1)
+
+# trigger analyzer
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-#analyzer.configure_trigger(cond={"soc_usb2_reset_n" : 1})
-analyzer.configure_trigger(cond={"soc_dbg_state" : 2})
+analyzer.configure_trigger(cond={"soc_dbg_state" : 20})
 analyzer.configure_subsampler(1)
-analyzer.run(offset=128, length=8192)
+analyzer.run(offset=128, length=2048)
 
-wb.regs.usb2_control_enable.write(1)
+# enable core
+wb.regs.usb2_control_core_enable.write(1)
 
+# wait & dump analyzer
 while not analyzer.done():
     pass
 analyzer.upload()
 analyzer.save("dump.vcd")
-
-time.sleep(2)
-
-wb.regs.usb2_control_enable.write(0)
 
 # # #
 
