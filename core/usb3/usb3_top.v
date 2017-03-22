@@ -13,15 +13,12 @@ module usb3_top (
 input	wire			ext_clk,
 input	wire			reset_n,
 
-input	wire			phy_pipe_pclk,            // 250MHz:  PCLK
 input	wire			phy_pipe_half_clk,        // 125MHz:  1/2 PCLK
 input	wire			phy_pipe_half_clk_phase,  // 125MHz:  1/2 PCLK, phase shift 90
 input	wire			phy_pipe_quarter_clk,     // 62.5MHz: 1/4 PCLK
 input	wire	[31:0]	phy_pipe_rx_data,
 input	wire	[3:0]	phy_pipe_rx_datak,
 input	wire	[1:0]	phy_pipe_rx_valid,
-input	wire			phy_pipe_tx_clk,          // 250Mhz: TX CLK
-input	wire			phy_pipe_tx_clk_phase,    // 250Mhz: TX CLK, phase shift 90
 output	wire	[31:0]	phy_pipe_tx_data,
 output	wire	[3:0]	phy_pipe_tx_datak,
 
@@ -109,16 +106,12 @@ usb3_pipe	iu3p (
 	.slow_clk				( phy_pipe_quarter_clk ),
 	.local_clk				( phy_pipe_half_clk ),
 	.local_clk_capture		( phy_pipe_half_clk_phase ),
-	.local_tx_clk			( phy_pipe_tx_clk ),
-	.local_tx_clk_phase		( phy_pipe_tx_clk_phase ),
 	.reset_n				( reset_2 ),
 	.ltssm_reset_n			( ltssm_reset_n ),
 
-	.phy_pipe_pclk			( phy_pipe_pclk ),
 	.phy_pipe_rx_data		( phy_pipe_rx_data ),
 	.phy_pipe_rx_datak		( phy_pipe_rx_datak	 ),
 	.phy_pipe_rx_valid		( phy_pipe_rx_valid ),
-	.phy_pipe_tx_clk		( phy_pipe_tx_clk ),
 	.phy_pipe_tx_data		( phy_pipe_tx_data ),
 	.phy_pipe_tx_datak		( phy_pipe_tx_datak ),
 

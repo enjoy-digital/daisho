@@ -13,16 +13,12 @@ module usb3_pipe (
 input	wire			slow_clk,
 input	wire			local_clk,
 input	wire			local_clk_capture,
-input	wire			local_tx_clk,
-input	wire			local_tx_clk_phase,
 input	wire			reset_n,
 output	reg				ltssm_reset_n,
 
-input	wire			phy_pipe_pclk,
 input	wire	[31:0]	phy_pipe_rx_data,
 input	wire	[3:0]	phy_pipe_rx_datak,
 input	wire	[1:0]	phy_pipe_rx_valid,
-output	wire			phy_pipe_tx_clk,
 output	wire	[31:0]	phy_pipe_tx_data,
 output	wire	[3:0]	phy_pipe_tx_datak,
 
@@ -86,8 +82,6 @@ output	reg				partner_detected
 );
 
 `include "usb3_const.vh"
-
-	assign phy_pipe_tx_clk = local_tx_clk_phase;
 
 	// mux these phy signals with both local PIPE and external LTSSM control
 	//
