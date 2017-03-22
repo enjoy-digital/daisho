@@ -30,7 +30,8 @@ output	wire			phy_tx_elecidle,
 inout	wire			phy_rx_elecidle,
 input	wire	[5:0]	phy_rx_status,
 output	wire	[1:0]	phy_power_down,
-inout	wire	[1:0]	phy_phy_status,
+input   wire	[1:0]	phy_phy_status_i,
+output	wire	        phy_phy_status_o,
 input	wire			phy_pwrpresent,
 
 output	wire			phy_tx_oneszeros,
@@ -91,7 +92,7 @@ end
 	// strap pins
 	assign			phy_rx_elecidle 	= reset_2 ? 1'bZ : XTAL_SEL;
 	assign			phy_tx_margin	  	= reset_2 ? mux_tx_margin  : SSC_DIS;
-	assign			phy_phy_status 		= reset_2 ? 1'bZ : PIPE_16BIT;
+	assign			phy_phy_status_o 		= reset_2 ? 1'bZ : PIPE_16BIT;
 
 ////////////////////////////////////////////////////////////
 //
@@ -120,7 +121,7 @@ usb3_pipe	iu3p (
 	.phy_rx_elecidle		( phy_rx_elecidle ),
 	.phy_rx_status			( phy_rx_status ),
 	.phy_power_down			( phy_power_down ),
-	.phy_phy_status			( phy_phy_status ),
+	.phy_phy_status			( phy_phy_status_i ),
 	.phy_pwrpresent			( phy_pwrpresent ),
 
 	.phy_tx_oneszeros		( phy_tx_oneszeros ),

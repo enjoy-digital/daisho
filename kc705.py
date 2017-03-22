@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from litex.gen import *
+from litex.gen.genlib.resetsync import AsyncResetSynchronizer
 from litex.build.generic_platform import *
 
 from litex.soc.interconnect.csr import *
@@ -39,7 +40,7 @@ _usb3_io = [
         Subsignal("power_down", Pins("HPC:LA12_N", "HPC:LA13_P")),
         Subsignal("tx_oneszeros", Pins("HPC:LA27_N")),
         Subsignal("tx_deemph", Pins("HPC:LA31_P", "HPC:LA28_N")),
-        Subsignal("tx_margin", Pins("HPC:LA30_P", "HPC:LA30_N")),
+        Subsignal("tx_margin", Pins("HPC:LA31_N", "HPC:LA30_P", "HPC:LA30_N")),
         Subsignal("tx_swing", Pins("HPC:LA29_P")),
         Subsignal("rx_polarity", Pins("HPC:LA16_N")),
         Subsignal("rx_termination", Pins("HPC:LA13_N")),
@@ -181,9 +182,11 @@ class USBSoC(BaseSoC):
 
             self.submodules.usb2_control = USB2Control()
 
-            self.clock_domains.cd_usb2 = ClockDomain()
-            self.comb += self.cd_usb2.clk.eq(usb_ulpi.clk)
-            self.platform.add_period_constraint(self.cd_usb2.clk, 16.667)
+            self.clock_domains.cd_ulpi = ClockDomain()
+            self.comb += self.cd_ulpi.clk.eq(usb_ulpi.clk)
+
+            self.cd_ulpiusb2.clk.attr.add("keep")
+            self.platform.add_period_constraint(self.cd_ulpiusb2.clk, 16.667)
 
             stat_connected = Signal()
             stat_fs = Signal()
@@ -251,8 +254,8 @@ class USBSoC(BaseSoC):
                 o_dbg_linestate=dbg_linestate
             )
             platform.add_verilog_include_path(os.path.join("core"))
-            platform.add_verilog_include_path(os.path.join("core", "usb2"))
-            platform.add_source_dir(os.path.join("core", "usb2"))
+            platform.add_verilog_include_path(os.path.join("core", "ulpi"))
+            platform.add_source_dir(os.path.join("core", "ulpi"))
 
 
             # usb2 debug
@@ -275,7 +278,7 @@ class USBSoC(BaseSoC):
                 err_pid_out_of_seq,
                 err_setup_pkt
             ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="usb2")
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="ulpi")
 
 
         # usb3 core
@@ -340,17 +343,27 @@ class USBSoC(BaseSoC):
 
             self.clock_domains.cd_phy_pipe_half = ClockDomain()
             self.clock_domains.cd_phy_pipe_half_phase = ClockDomain()
-            self.clock_domains.cd_phy_pipe_quarter_pll = ClockDomain()
+            self.clock_domains.cd_phy_pipe_quarter = ClockDomain()
             self.clock_domains.cd_phy_pipe_tx_phase = ClockDomain()
             self.comb += [
                 self.cd_phy_pipe_half.clk.eq(phy_pipe_half_clk),
                 self.cd_phy_pipe_half_phase.clk.eq(phy_pipe_half_clk_phase),
-                self.cd_phy_pipe_quarter_pll.clk.eq(phy_pipe_quarter_clk),
+                self.cd_phy_pipe_quarter.clk.eq(phy_pipe_quarter_clk),
                 self.cd_phy_pipe_tx_phase.clk.eq(phy_pipe_tx_clk_phase)
             ]
+            self.specials += [
+                AsyncResetSynchronizer(self.cd_phy_pipe_half, ~phy_pipe_pll_locked),
+                AsyncResetSynchronizer(self.cd_phy_pipe_half_phase, ~phy_pipe_pll_locked),
+                AsyncResetSynchronizer(self.cd_phy_pipe_quarter, ~phy_pipe_pll_locked),
+                AsyncResetSynchronizer(self.cd_phy_pipe_tx_phase, ~phy_pipe_pll_locked)
+            ]
+            self.cd_phy_pipe_half.clk.attr.add("keep")
+            self.cd_phy_pipe_half_phase.clk.attr.add("keep")
+            self.cd_phy_pipe_quarter.clk.attr.add("keep")
+            self.cd_phy_pipe_tx_phase.clk.attr.add("keep")
             self.platform.add_period_constraint(self.cd_phy_pipe_half.clk, 8.0)
             self.platform.add_period_constraint(self.cd_phy_pipe_half_phase.clk, 8.0)
-            self.platform.add_period_constraint(self.cd_phy_pipe_quarter_pll.clk, 16.0)
+            self.platform.add_period_constraint(self.cd_phy_pipe_quarter.clk, 16.0)
             self.platform.add_period_constraint(self.cd_phy_pipe_tx_phase.clk, 4.0)
 
             phy_pipe_rx_data = Signal(32)
@@ -360,29 +373,33 @@ class USBSoC(BaseSoC):
             phy_pipe_tx_data = Signal(32)
             phy_pipe_tx_datak = Signal(4)
 
+            phy_rx_status = Signal(6)
+            phy_phy_status = Signal(2)
+
             self.comb += usb3_reset_n.eq(self.usb3_control.phy_enable)
             self.specials += Instance("usb3_top",
                 i_ext_clk=ClockSignal(),
                 i_reset_n=self.usb3_control.core_enable,
 
-                i_phy_pipe_half_clk=phy_pipe_half_clk,
-                i_phy_pipe_half_clk_phase=phy_pipe_half_clk_phase,
-                i_phy_pipe_quarter_clk=phy_pipe_quarter_clk,
+                i_phy_pipe_half_clk=ClockSignal("phy_pipe_half"),
+                i_phy_pipe_half_clk_phase=ClockSignal("phy_pipe_half_phase"),
+                i_phy_pipe_quarter_clk=ClockSignal("phy_pipe_quarter"),
                 i_phy_pipe_rx_data=phy_pipe_rx_data,
                 i_phy_pipe_rx_datak=phy_pipe_rx_datak,
                 i_phy_pipe_rx_valid=phy_pipe_rx_valid,
                 o_phy_pipe_tx_data=phy_pipe_tx_data,
                 o_phy_pipe_tx_datak=phy_pipe_tx_datak,
 
-                o_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
-                #o_phy_out_enable=, # TODO
-                #o_phy_phy_reset_n=, # TODO
+                #o_phy_reset_n=,
+                #o_phy_out_enable=,
+                o_phy_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
                 o_phy_tx_detrx_lpbk=usb_pipe_ctrl.tx_detrx_lpbk,
                 o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
                 io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
-                i_phy_rx_status=usb_pipe_status.rx_status, # FIXME DDR
+                i_phy_rx_status=phy_rx_status,
                 o_phy_power_down=usb_pipe_ctrl.power_down,
-                io_phy_phy_status=usb_pipe_status.phy_status, # FIXME DDR
+                i_phy_phy_status_i=phy_phy_status,
+                o_phy_phy_status_o=usb_pipe_status.phy_status,
                 i_phy_pwrpresent=usb_pipe_status.pwr_present,
 
                 o_phy_tx_oneszeros=usb_pipe_ctrl.tx_oneszeros,
@@ -436,6 +453,17 @@ class USBSoC(BaseSoC):
                     i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
                     i_D=usb_pipe_data.rx_datak[i], o_Q1=phy_pipe_rx_datak[i], o_Q2=phy_pipe_rx_datak[2+i],
                 )
+            for i in range(3):
+                self.specials += Instance("IDDR",
+                    p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
+                    i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
+                    i_D=usb_pipe_status.rx_status[i], o_Q1=phy_rx_status[i], o_Q2=phy_rx_status[3+i],
+                )
+            self.specials += Instance("IDDR",
+                p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
+                i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
+                i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
+            )
 
             # ddr outputs
             self.specials += Instance("ODDR",
