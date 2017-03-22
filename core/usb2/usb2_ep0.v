@@ -4,7 +4,7 @@
 //
 // Copyright (c) 2012-2013 Marshall H.
 // All rights reserved.
-// This code is released under the terms of the simplified BSD license.
+// This code is released under the terms of the simplified BSD license. 
 // See LICENSE.TXT for details.
 //
 
@@ -44,11 +44,8 @@ output	reg		[1:0]	data_toggle,
 output	reg		[6:0]	dev_addr,
 output	reg				configured,
 
-output	reg				err_setup_pkt,
-output  wire	[5:0]	dbg_state_in,
-output  wire	[5:0]	dbg_state_out,
-output  wire    [79:0]  dbg_packet_setup,
-output  wire    [7:0]   dbg_rom_adr
+output	reg				err_setup_pkt
+
 );
 
 `include "usb_descrip.vh"
@@ -56,7 +53,7 @@ output  wire    [7:0]   dbg_rom_adr
 	reg 			reset_1, reset_2;
 	reg				buf_in_commit_1, buf_in_commit_2;
 	reg				buf_out_arm_1, buf_out_arm_2;
-
+	
 	parameter [3:0]	PID_TOKEN_OUT	= 4'hE,
 					PID_TOKEN_IN	= 4'h6,
 					PID_TOKEN_SOF	= 4'hA,
@@ -73,10 +70,9 @@ output  wire    [7:0]   dbg_rom_adr
 					PID_SPEC_SPLIT	= 4'h7,
 					PID_SPEC_PING	= 4'hB,
 					PID_SPEC_LPM	= 4'hF;
-
+	
 	reg		[79:0]	packet_setup;
-	assign dbg_packet_setup = packet_setup;
-	wire	[7:0]	packet_setup_reqtype = packet_setup[79:72];
+	wire	[7:0]	packet_setup_reqtype = packet_setup[79:72];	
 	wire			packet_setup_dir	= packet_setup_reqtype[7];
 	parameter		SETUP_DIR_HOSTTODEV	= 1'b0,
 					SETUP_DIR_DEVTOHOST	= 1'b1;
@@ -105,29 +101,28 @@ output  wire    [7:0]   dbg_rom_adr
 	wire	[15:0]	packet_setup_widx	= {packet_setup[39:32], packet_setup[47:40]};
 	wire	[15:0]	packet_setup_wlen	= {packet_setup[23:16], packet_setup[31:24]};
 	wire	[15:0]	packet_setup_crc16	= packet_setup[15:0];
-
+	
 	reg		[5:0]	desired_out_len;
 	reg		[15:0]	packet_out_len;
 	reg		[3:0]	dev_config;
-
+	
 	reg				ptr_in;
 	reg				ptr_out;
-
+	
 	reg		[9:0]	len_in;
 	reg				ready_in;
 	assign			buf_in_ready 		= 	ready_in;
 	assign			buf_in_commit_ack	= 	(state_in == ST_IN_COMMIT);
-
+	
 	reg		[9:0]	len_out;
 	reg				hasdata_out;
 	assign			buf_out_len			=	len_out;
 	assign			buf_out_hasdata 	= 	hasdata_out;
 	assign			buf_out_arm_ack 	= 	(state_out == ST_OUT_ARM);
-
+	
 	reg		[6:0]	dc;
-
+	
 	reg		[5:0]	state_in;
-	assign dbg_state_in = state_in;
 	parameter [5:0]	ST_RST_0			= 6'd0,
 					ST_RST_1			= 6'd1,
 					ST_IDLE				= 6'd10,
@@ -144,42 +139,41 @@ output  wire    [7:0]   dbg_rom_adr
 					ST_REQ_SETINTERFACE	= 6'd36,
 					ST_REQ_SETADDR		= 6'd37,
 					ST_REQ_VENDOR		= 6'd38;
-
+					
 	reg		[5:0]	state_out;
-	assign dbg_state_out = state_out;
 	parameter [5:0]	ST_OUT_ARM			= 6'd11,
 					ST_OUT_SWAP			= 6'd20;
 
-
+					
 always @(posedge phy_clk) begin
 
 	// synchronizers
 	{reset_2, reset_1} <= {reset_1, reset_n};
 	{buf_in_commit_2, buf_in_commit_1} <= {buf_in_commit_1, buf_in_commit};
 	{buf_out_arm_2, buf_out_arm_1} <= {buf_out_arm_1, buf_out_arm};
-
+	
 	configured <= dev_config ? 1 : 0;
-
+		
 	dc <= dc + 1'b1;
-
+	
 	// clear act strobe after 4 cycles
 	if(dc == 3) vend_req_act <= 1'b0;
-
+	
 	// main fsm
-	case(state_in)
+	case(state_in) 
 	ST_RST_0: begin
 		len_out <= 0;
-
+		
 		// data toggle is fixed at DATA1
 		data_toggle <= 2'b01;
-
+		
 		desired_out_len <= 0;
 		dev_addr <= 0;
 		dev_config <= 0;
 		err_setup_pkt <= 0;
-
+		
 		ready_in <= 1;
-
+		
 		state_in <= ST_RST_1;
 	end
 	ST_RST_1: begin
@@ -207,30 +201,30 @@ always @(posedge phy_clk) begin
 			state_in <= ST_IN_PARSE_0;
 		end
 	end
-
+	
 	ST_IN_PARSE_0: begin
 		// parse setup packet
 		buf_in_rdaddr <= buf_in_rdaddr + 1'b1;
-
+		
 		packet_setup <= {packet_setup[71:0], buf_in_q[7:0]};
-		if(dc == (10+2-1)) state_in <= ST_IN_PARSE_1;
+		if(dc == (10+2-1)) state_in <= ST_IN_PARSE_1;		
 	end
 	ST_IN_PARSE_1: begin
 		// parse setup packet
 		packet_out_len <= packet_setup_wlen;
-
+		
 		// confirm this is going in the right direction
 		//if(packet_setup_dir != SETUP_DIR_DEVTOHOST) begin
 		//	err_setup_pkt <= 1;
 		//	state <= 10;
 		//end else begin
-
+		
 		if(packet_setup_type == SETUP_TYPE_VENDOR) begin
 			// parse vendor request
 			state_in <= ST_REQ_VENDOR;
 		end else begin
 			// proceed with parsing
-
+			
 			case(packet_setup_req)
 			REQ_GET_DESCR: begin
 				state_in <= ST_REQ_DESCR;
@@ -254,11 +248,11 @@ always @(posedge phy_clk) begin
 			endcase
 		end
 	end
-
+	
 	ST_REQ_DESCR: begin
-
+		
 		state_in <= ST_RDLEN_0;
-
+		
 		// GET_DESCRIPTOR
 		case(packet_setup_wval)
 		16'h0100: begin
@@ -295,7 +289,7 @@ always @(posedge phy_clk) begin
 			packet_out_len <= 0;
 		end
 		endcase
-
+		
 	end
 	ST_RDLEN_0: begin
 		// wait cycle if descriptor BRAM has a buffered output
@@ -308,7 +302,7 @@ always @(posedge phy_clk) begin
 	end
 	ST_RDLEN_2: begin
 		// pick smaller of the setup packet's wanted length and the stored length
-		len_out <= packet_out_len < desired_out_len ? packet_out_len : desired_out_len;
+		len_out <= packet_out_len < desired_out_len ? packet_out_len : desired_out_len; 
 		// send response (DATA1)
 		ready_in <= 1;
 		hasdata_out <= 1;
@@ -316,7 +310,7 @@ always @(posedge phy_clk) begin
 	end
 	ST_REQ_GETCONFIG: begin
 		// GET DEVICE CONFIGURATION
-
+		
 		// send 1byte response (DATA1)
 		len_out <= 1;
 		ready_in <= 1;
@@ -327,7 +321,7 @@ always @(posedge phy_clk) begin
 	ST_REQ_SETCONFIG: begin
 		// SET DEVICE CONFIGURATION
 		dev_config <= packet_setup_wval[6:0];
-
+	
 		// send 0byte response (DATA1)
 		len_out <= 0;
 		ready_in <= 1;
@@ -337,7 +331,7 @@ always @(posedge phy_clk) begin
 	ST_REQ_SETINTERFACE: begin
 		// SET INTERFACE
 		//dev_config <= packet_setup_wval[6:0];
-
+	
 		// send 0byte response (DATA1)
 		len_out <= 0;
 		ready_in <= 1;
@@ -347,14 +341,14 @@ always @(posedge phy_clk) begin
 	ST_REQ_SETADDR: begin
 		// SET DEVICE ADDRESS
 		dev_addr <= packet_setup_wval[6:0];
-
+	
 		// send 0byte response (DATA1)
 		len_out <= 0;
 		ready_in <= 1;
 		hasdata_out <= 1;
 		state_in <= ST_IDLE;
 	end
-
+	
 	ST_REQ_VENDOR: begin
 		// VENDOR REQUEST
 		vend_req_request <= packet_setup_req;
@@ -374,16 +368,16 @@ always @(posedge phy_clk) begin
 	end
 	default: state_in <= ST_RST_0;
 	endcase
+	
 
-
-
+	
 	// output FSM
 	//
-	case(state_out)
+	case(state_out) 
 	ST_RST_0: begin
 		hasdata_out <= 0;
-
-		// configure default state
+		
+		// configure default state		
 		state_out <= ST_RST_1;
 	end
 	ST_RST_1: begin
@@ -409,21 +403,21 @@ always @(posedge phy_clk) begin
 		ready_in <= 1;
 		// update hasdata status
 		hasdata_out <= 0;
-
+		
 		state_out <= ST_IDLE;
 	end
 	default: state_out <= ST_RST_0;
 	endcase
-
+	
 	if(~reset_2) begin
 		// reset
 		state_in <= ST_RST_0;
 		state_out <= ST_RST_0;
 	end
-
+	
 end
-
-
+	
+	
 // endpoint OUT buffer
 // 64 bytes
 // terminology here: USB specs defines IN as device reads going into the PC,
@@ -433,7 +427,7 @@ end
 
 	reg		[5:0]	buf_in_rdaddr;
 	wire	[7:0]	buf_in_q;
-
+	
 usb2_ep0in_ram	iu2ep0i (
 	.clk 		( phy_clk ),
 	.wr_dat_w 	( buf_in_data ),
@@ -449,14 +443,12 @@ usb2_ep0in_ram	iu2ep0i (
 // relevant descriptors (device, interface, endpoint etc)
 
 	reg		[7:0]	descrip_addr_offset;
-
+	
 usb2_descrip_rom iu2d (
 	.clk 		( phy_clk ),
 	.adr 		( buf_out_addr + descrip_addr_offset),
 	.dat_r 		( buf_out_q )
 );
 
-assign dbg_rom_adr = (buf_out_addr + descrip_addr_offset);
-
-
+	
 endmodule
