@@ -390,7 +390,7 @@ class USBSoC(BaseSoC):
                 o_phy_pipe_tx_data=phy_pipe_tx_data,
                 o_phy_pipe_tx_datak=phy_pipe_tx_datak,
 
-                #o_phy_reset_n=,
+                #o_phy_reset_n=usb3_reset_n,
                 #o_phy_out_enable=,
                 o_phy_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
                 o_phy_tx_detrx_lpbk=usb_pipe_ctrl.tx_detrx_lpbk,
@@ -459,11 +459,11 @@ class USBSoC(BaseSoC):
                     i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
                     i_D=usb_pipe_status.rx_status[i], o_Q1=phy_rx_status[i], o_Q2=phy_rx_status[3+i],
                 )
-            self.specials += Instance("IDDR",
-                p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
-                i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
-                i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
-            )
+            #self.specials += Instance("IDDR",
+            #    p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
+            #    i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
+            #    i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
+            #)
 
             # ddr outputs
             self.specials += Instance("ODDR",
