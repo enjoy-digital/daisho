@@ -1,3 +1,6 @@
 Test of the USB3 IP Core from Daisho on a Xilinx device
 
 In this repository we are testing USB3 IP Core from Daisho on a Xilinx device.
+
+USB2 / ULPI working
+UDB3 not tested
