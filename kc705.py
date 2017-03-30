@@ -397,10 +397,10 @@ class USBSoC(BaseSoC):
                 #o_phy_out_enable=,
                 o_phy_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
                 o_phy_tx_detrx_lpbk=usb_pipe_ctrl.tx_detrx_lpbk,
-                o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
+                #o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
                 io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
                 i_phy_rx_status=phy_rx_status,
-                o_phy_power_down=usb_pipe_ctrl.power_down,
+                #o_phy_power_down=usb_pipe_ctrl.power_down,
                 i_phy_phy_status_i=phy_phy_status,
                 o_phy_phy_status_o=usb_pipe_status.phy_status,
                 i_phy_pwrpresent=usb_pipe_status.pwr_present,
@@ -437,6 +437,13 @@ class USBSoC(BaseSoC):
             platform.add_verilog_include_path(os.path.join("core"))
             platform.add_verilog_include_path(os.path.join("core", "usb3"))
             platform.add_source_dir(os.path.join("core", "usb3"))
+
+
+            # FIXME
+            self.comb += [
+                usb_pipe_ctrl.tx_elecidle.eq(0),
+                usb_pipe_ctrl.power_down.eq(0),
+            ]
 
             # ddr inputs
             self.specials += Instance("IDDR",
@@ -492,6 +499,14 @@ class USBSoC(BaseSoC):
                 analyzer_signals = [
                     usb3_reset_n,
                     usb_pipe_ctrl.phy_reset_n,
+
+                    usb_pipe_ctrl.tx_detrx_lpbk,
+                    usb_pipe_ctrl.tx_elecidle,
+                    usb_pipe_status.rx_elecidle,
+                    usb_pipe_ctrl.power_down,
+                    usb_pipe_status.phy_status,
+                    phy_rx_status,
+                    usb_pipe_status.pwr_present,
 
                     phy_pipe_rx_valid,
                     phy_pipe_rx_data,
