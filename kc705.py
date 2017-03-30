@@ -118,7 +118,7 @@ class BaseSoC(SoCCore):
 
         # ethernet <--> wishbone
         self.submodules.etherbone = LiteEthEtherbone(self.eth_core.udp, 1234)
-        self.add_wb_master(self.etherbone.master.bus)
+        self.add_wb_master(self.etherbone.wishbone.bus)
 
         # timing constraints
         self.crg.cd_sys.clk.attr.add("keep")
@@ -141,7 +141,9 @@ class USBSoC(BaseSoC):
         "usb3_control": 22
     }
     csr_map.update(BaseSoC.csr_map)
-    def __init__(self, platform, with_usb2=False, with_usb3=True):
+    def __init__(self, platform,
+        with_usb2=True, with_usb2_analyzer=False,
+        with_usb3=True, with_usb3_analyzer=True):
         BaseSoC.__init__(self, platform)
 
         # usb ios
@@ -185,8 +187,8 @@ class USBSoC(BaseSoC):
             self.clock_domains.cd_ulpi = ClockDomain()
             self.comb += self.cd_ulpi.clk.eq(usb_ulpi.clk)
 
-            self.cd_ulpiusb2.clk.attr.add("keep")
-            self.platform.add_period_constraint(self.cd_ulpiusb2.clk, 16.667)
+            self.cd_ulpi.clk.attr.add("keep")
+            self.platform.add_period_constraint(self.cd_ulpi.clk, 16.667)
 
             stat_connected = Signal()
             stat_fs = Signal()
@@ -254,31 +256,32 @@ class USBSoC(BaseSoC):
                 o_dbg_linestate=dbg_linestate
             )
             platform.add_verilog_include_path(os.path.join("core"))
-            platform.add_verilog_include_path(os.path.join("core", "ulpi"))
-            platform.add_source_dir(os.path.join("core", "ulpi"))
+            platform.add_verilog_include_path(os.path.join("core", "usb2"))
+            platform.add_source_dir(os.path.join("core", "usb2"))
 
 
             # usb2 debug
-            analyzer_signals = [
-                dbg_frame_num,
-                dbg_linestate,
+            if with_usb2_analyzer:
+                analyzer_signals = [
+                    dbg_frame_num,
+                    dbg_linestate,
 
-                stat_connected,
-                stat_fs,
-                stat_hs,
-                stat_configured,
+                    stat_connected,
+                    stat_fs,
+                    stat_hs,
+                    stat_configured,
 
-                vend_req_act,
-                vend_req_request,
-                vend_req_val,
+                    vend_req_act,
+                    vend_req_request,
+                    vend_req_val,
 
-                err_crc_pid,
-                err_crc_tok,
-                err_crc_pkt,
-                err_pid_out_of_seq,
-                err_setup_pkt
-            ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="ulpi")
+                    err_crc_pid,
+                    err_crc_tok,
+                    err_crc_pkt,
+                    err_pid_out_of_seq,
+                    err_setup_pkt
+                ]
+                self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="ulpi")
 
 
         # usb3 core
@@ -485,18 +488,19 @@ class USBSoC(BaseSoC):
                 )
 
             # usb3 debug
-            analyzer_signals = [
-                usb3_reset_n,
-                usb_pipe_ctrl.phy_reset_n,
+            if with_usb3_analyzer:
+                analyzer_signals = [
+                    usb3_reset_n,
+                    usb_pipe_ctrl.phy_reset_n,
 
-                phy_pipe_rx_valid,
-                phy_pipe_rx_data,
-                phy_pipe_rx_datak,
+                    phy_pipe_rx_valid,
+                    phy_pipe_rx_data,
+                    phy_pipe_rx_datak,
 
-                phy_pipe_tx_data,
-                phy_pipe_tx_datak
-            ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
+                    phy_pipe_tx_data,
+                    phy_pipe_tx_datak
+                ]
+                self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
 
     def do_exit(self, vns):
         if hasattr(self, "analyzer"):

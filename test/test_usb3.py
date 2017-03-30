@@ -9,11 +9,15 @@ wb.open()
 
 # # #
 
+wb.regs.usb2_control_phy_enable.write(0)
+wb.regs.usb2_control_core_enable.write(0)
+
 # disable phy & core
 wb.regs.usb3_control_phy_enable.write(0)
 wb.regs.usb3_control_core_enable.write(0)
 
 # enable phy
+wb.regs.usb2_control_phy_enable.write(1)
 wb.regs.usb3_control_phy_enable.write(1)
 
 # trigger analyzer
@@ -24,6 +28,7 @@ analyzer.configure_subsampler(1)
 analyzer.run(offset=128, length=2048)
 
 # enable core
+wb.regs.usb2_control_core_enable.write(1)
 wb.regs.usb3_control_core_enable.write(1)
 
 # wait & dump analyzer
