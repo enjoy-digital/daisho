@@ -61,8 +61,9 @@ output	wire			buf_out_arm_ack,
 
 output	wire			vend_req_act,
 output	wire	[7:0]	vend_req_request,
-output	wire	[15:0]	vend_req_val
-
+output	wire	[15:0]	vend_req_val,
+output  wire    [5:0] dbg_pipe_state,
+output  wire    [4:0] dbg_ltssm_state
 );
 
 	reg 			reset_1, reset_2;				// local reset
@@ -168,7 +169,8 @@ usb3_pipe	iu3p (
 	.lfps_recv_ping			( lfps_recv_ping ),
 	.lfps_recv_reset		( lfps_recv_reset ),
 	.lfps_recv_u2lb			( lfps_recv_u2lb ),
-	.lfps_recv_u3			( lfps_recv_u3 )
+	.lfps_recv_u3			( lfps_recv_u3 ),
+	.dbg_state              ( dbg_pipe_state )
 
 );
 
@@ -259,7 +261,8 @@ usb3_ltssm	iu3lt (
 	.lfps_recv_u2lb			( lfps_recv_u2lb ),
 	.lfps_recv_u3			( lfps_recv_u3 ),
 
-	.warm_reset				( ltssm_warm_reset )
+	.warm_reset				( ltssm_warm_reset ),
+	.dbg_state              ( dbg_ltssm_state )
 );
 
 

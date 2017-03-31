@@ -379,6 +379,9 @@ class USBSoC(BaseSoC):
             phy_rx_status = Signal(6)
             phy_phy_status = Signal(2)
 
+            dbg_pipe_state = Signal(6)
+            dbg_ltssm_state = Signal(5)
+
             #self.comb += usb3_reset_n.eq(self.usb3_control.phy_enable)
             self.comb += usb3_reset_n.eq(usb_pipe_ctrl.phy_reset_n)
             self.specials += Instance("usb3_top",
@@ -398,12 +401,12 @@ class USBSoC(BaseSoC):
                 #o_phy_out_enable=,
                 o_phy_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
                 o_phy_tx_detrx_lpbk=usb_pipe_ctrl.tx_detrx_lpbk,
-                #o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
-                #io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
+                o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
+                io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
                 i_phy_rx_status=phy_rx_status,
-                #o_phy_power_down=usb_pipe_ctrl.power_down,
+                o_phy_power_down=usb_pipe_ctrl.power_down,
                 i_phy_phy_status_i=phy_phy_status,
-                o_phy_phy_status_o=usb_pipe_status.phy_status,
+                #o_phy_phy_status_o=usb_pipe_status.phy_status,
                 i_phy_pwrpresent=usb_pipe_status.pwr_present,
 
                 o_phy_tx_oneszeros=usb_pipe_ctrl.tx_oneszeros,
@@ -434,17 +437,13 @@ class USBSoC(BaseSoC):
                 #o_vend_req_act=, # TODO
                 #o_vend_req_request=, # TODO
                 #o_vend_req_val=, # TODO
+
+                o_dbg_pipe_state=dbg_pipe_state,
+                o_dbg_ltssm_state=dbg_ltssm_state
             )
             platform.add_verilog_include_path(os.path.join("core"))
             platform.add_verilog_include_path(os.path.join("core", "usb3"))
             platform.add_source_dir(os.path.join("core", "usb3"))
-
-
-            # FIXME
-            self.comb += [
-                usb_pipe_ctrl.tx_elecidle.eq(0),
-                usb_pipe_ctrl.power_down.eq(0)
-            ]
 
             # ddr inputs
             self.specials += Instance("IDDR",
@@ -470,11 +469,11 @@ class USBSoC(BaseSoC):
                     i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
                     i_D=usb_pipe_status.rx_status[i], o_Q1=phy_rx_status[i], o_Q2=phy_rx_status[3+i],
                 )
-            #self.specials += Instance("IDDR",
-            #    p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
-            #    i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
-            #    i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
-            #)
+            self.specials += Instance("IDDR",
+                p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
+                i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
+                i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
+            )
 
             # ddr outputs
             self.specials += Instance("ODDR",
@@ -508,6 +507,7 @@ class USBSoC(BaseSoC):
                     usb_pipe_status.phy_status,
                     phy_rx_status,
                     usb_pipe_status.pwr_present,
+                    phy_phy_status,
 
                     usb_pipe_ctrl.tx_oneszeros,
                     usb_pipe_ctrl.tx_deemph,
@@ -530,6 +530,10 @@ class USBSoC(BaseSoC):
                     usb_ulpi.dir,
                     usb_ulpi.stp,
                     usb_ulpi.nxt,
+
+                    dbg_pipe_state,
+                    dbg_ltssm_state
+
                 ]
                 self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
 

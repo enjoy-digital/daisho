@@ -77,8 +77,8 @@ input	wire			lfps_recv_u3,
 
 input	wire			partner_detect,
 output	reg				partner_looking,
-output	reg				partner_detected
-
+output	reg				partner_detected,
+output  wire [5:0]      dbg_state
 );
 
 `include "usb3_const.vh"
@@ -98,6 +98,7 @@ output	reg				partner_detected
 	reg		[7:0]	sc;								//
 
 	reg		[5:0]	state;
+	assign dbg_state = state;
 parameter	[5:0]	ST_RST_0			= 6'd0,
 					ST_RST_1			= 6'd1,
 					ST_RST_2			= 6'd2,
