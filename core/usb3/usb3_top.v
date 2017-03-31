@@ -93,7 +93,7 @@ end
 	// strap pins
 	assign			phy_rx_elecidle 	= reset_2 ? 1'bZ : XTAL_SEL;
 	assign			phy_tx_margin	  	= reset_2 ? mux_tx_margin  : SSC_DIS;
-	assign			phy_phy_status_o 		= reset_2 ? 1'bZ : PIPE_16BIT;
+	assign			phy_phy_status_o 	= reset_2 ? 1'bZ : PIPE_16BIT;
 
 ////////////////////////////////////////////////////////////
 //

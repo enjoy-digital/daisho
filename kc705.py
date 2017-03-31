@@ -2,6 +2,7 @@
 
 from litex.gen import *
 from litex.gen.genlib.resetsync import AsyncResetSynchronizer
+from litex.gen.fhdl.specials import Tristate
 from litex.build.generic_platform import *
 
 from litex.soc.interconnect.csr import *
@@ -382,6 +383,9 @@ class USBSoC(BaseSoC):
             dbg_pipe_state = Signal(6)
             dbg_ltssm_state = Signal(5)
 
+            usb_pipe_status_phy_status = Signal()
+            self.specials += Tristate(usb_pipe_status.phy_status, 0, ~usb3_reset_n, usb_pipe_status_phy_status)
+
             self.comb += usb3_reset_n.eq(self.usb3_control.phy_enable)
             self.specials += Instance("usb3_top",
                 i_ext_clk=ClockSignal(),
@@ -471,7 +475,7 @@ class USBSoC(BaseSoC):
             self.specials += Instance("IDDR",
                 p_DDR_CLK_EDGE="SAME_EDGE_PIPELINED",
                 i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
-                i_D=usb_pipe_status.phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
+                i_D=usb_pipe_status_phy_status, o_Q1=phy_phy_status[0], o_Q2=phy_phy_status[1],
             )
 
             # ddr outputs
