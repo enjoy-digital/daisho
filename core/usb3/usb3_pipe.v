@@ -870,8 +870,8 @@ usb3_scramble iu3ss (
 	wire	[31:0]	pipe_tx_data	= send_data;
 	wire	[3:0]	pipe_tx_datak	= send_datak;
 
-	assign			phy_pipe_tx_datak	= pipe_tx_data_swap;
-	assign			phy_pipe_tx_data	= pipe_tx_datak_swap;
+	assign			phy_pipe_tx_data	= pipe_tx_data_swap;
+	assign			phy_pipe_tx_datak	= pipe_tx_datak_swap;
 
 //
 // RECEIVE

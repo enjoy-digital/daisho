@@ -483,13 +483,13 @@ class USBSoC(BaseSoC):
             for i in range(16):
                 self.specials += Instance("ODDR",
                     p_DDR_CLK_EDGE="SAME_EDGE",
-                    i_C=ClockSignal("phy_pipe_half_phase"), i_CE=1, i_S=0, i_R=0,
+                    i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
                     i_D1=phy_pipe_tx_data[i], i_D2=phy_pipe_tx_data[16+i], o_Q=usb_pipe_data.tx_data[i],
                 )
             for i in range(2):
                 self.specials += Instance("ODDR",
                     p_DDR_CLK_EDGE="SAME_EDGE",
-                    i_C=ClockSignal("phy_pipe_half_phase"), i_CE=1, i_S=0, i_R=0,
+                    i_C=ClockSignal("phy_pipe_half"), i_CE=1, i_S=0, i_R=0,
                     i_D1=phy_pipe_tx_datak[i], i_D2=phy_pipe_tx_datak[2+i], o_Q=usb_pipe_data.tx_datak[i],
                 )
 

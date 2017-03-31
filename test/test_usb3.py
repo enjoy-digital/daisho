@@ -19,16 +19,16 @@ wb.regs.usb3_control_core_enable.write(0)
 
 # trigger analyzer
 analyzer = LiteScopeAnalyzerDriver(wb.regs, "analyzer", debug=True)
-analyzer.configure_trigger(cond={"soc_phy_pipe_rx_datak": 0b0000})
+analyzer.configure_trigger(cond={"soc_dbg_ltssm_state": 10})
 analyzer.configure_subsampler(1)
-analyzer.run(offset=2048-128, length=2048)
+analyzer.run(offset=1024, length=2048)
 
 # enable usb2 & usb3 phy
 wb.regs.usb2_control_phy_enable.write(1)
 wb.regs.usb3_control_phy_enable.write(1)
 
 # enable usb2 & usb3 core
-wb.regs.usb2_control_core_enable.write(1)
+wb.regs.usb2_control_core_enable.write(0)
 wb.regs.usb3_control_core_enable.write(1)
 
 # wait & dump analyzer
