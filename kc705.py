@@ -211,7 +211,7 @@ class USBSoC(BaseSoC):
             self.comb += usb2_reset_n.eq(self.usb2_control.phy_enable)
             self.specials += Instance("usb2_top",
                 i_ext_clk=ClockSignal(),
-                i_reset_n=self.usb2_control.core_enable,
+                i_reset_n=self.usb2_control.core_enable & usb_pipe_ctrl.phy_reset_n,
                 #o_reset_n_out=,
 
                 i_phy_ulpi_clk=usb_ulpi.clk,
@@ -379,7 +379,8 @@ class USBSoC(BaseSoC):
             phy_rx_status = Signal(6)
             phy_phy_status = Signal(2)
 
-            self.comb += usb3_reset_n.eq(self.usb3_control.phy_enable)
+            #self.comb += usb3_reset_n.eq(self.usb3_control.phy_enable)
+            self.comb += usb3_reset_n.eq(usb_pipe_ctrl.phy_reset_n)
             self.specials += Instance("usb3_top",
                 i_ext_clk=ClockSignal(),
                 i_reset_n=self.usb3_control.core_enable,
@@ -398,7 +399,7 @@ class USBSoC(BaseSoC):
                 o_phy_phy_reset_n=usb_pipe_ctrl.phy_reset_n,
                 o_phy_tx_detrx_lpbk=usb_pipe_ctrl.tx_detrx_lpbk,
                 #o_phy_tx_elecidle=usb_pipe_ctrl.tx_elecidle,
-                io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
+                #io_phy_rx_elecidle=usb_pipe_status.rx_elecidle,
                 i_phy_rx_status=phy_rx_status,
                 #o_phy_power_down=usb_pipe_ctrl.power_down,
                 i_phy_phy_status_i=phy_phy_status,
@@ -442,7 +443,7 @@ class USBSoC(BaseSoC):
             # FIXME
             self.comb += [
                 usb_pipe_ctrl.tx_elecidle.eq(0),
-                usb_pipe_ctrl.power_down.eq(0),
+                usb_pipe_ctrl.power_down.eq(0)
             ]
 
             # ddr inputs
@@ -508,12 +509,27 @@ class USBSoC(BaseSoC):
                     phy_rx_status,
                     usb_pipe_status.pwr_present,
 
+                    usb_pipe_ctrl.tx_oneszeros,
+                    usb_pipe_ctrl.tx_deemph,
+                    usb_pipe_ctrl.tx_margin,
+                    usb_pipe_ctrl.tx_swing,
+                    usb_pipe_ctrl.rx_polarity,
+                    usb_pipe_ctrl.rx_termination,
+                    usb_pipe_ctrl.rate,
+                    usb_pipe_ctrl.elas_buf_mode,
+
                     phy_pipe_rx_valid,
                     phy_pipe_rx_data,
                     phy_pipe_rx_datak,
 
                     phy_pipe_tx_data,
-                    phy_pipe_tx_datak
+                    phy_pipe_tx_datak,
+
+                    usb_ulpi.clk,
+                    usb_ulpi.data,
+                    usb_ulpi.dir,
+                    usb_ulpi.stp,
+                    usb_ulpi.nxt,
                 ]
                 self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
 
