@@ -198,7 +198,7 @@ class USBSoC(BaseSoC):
     csr_map.update(BaseSoC.csr_map)
     def __init__(self, platform, usb_connector=0,
         with_usb2=True, with_usb2_analyzer=False,
-        with_usb3=True, with_usb3_analyzer=True):
+        with_usb3=True, with_usb3_analyzer=False):
         BaseSoC.__init__(self, platform)
 
         # usb ios
@@ -566,17 +566,15 @@ class USBSoC(BaseSoC):
             # usb3 debug
             if with_usb3_analyzer:
                 analyzer_signals = [
-                    usb3_reset_n,
-                    usb_pipe_ctrl.phy_reset_n,
+                    dbg_pipe_state,
+                    dbg_ltssm_state,
 
                     usb_pipe_ctrl.tx_detrx_lpbk,
                     usb_pipe_ctrl.tx_elecidle,
                     usb_pipe_status.rx_elecidle,
                     usb_pipe_ctrl.power_down,
                     usb_pipe_status.phy_status,
-                    phy_rx_status,
                     usb_pipe_status.pwr_present,
-                    phy_phy_status,
 
                     usb_pipe_ctrl.tx_oneszeros,
                     usb_pipe_ctrl.tx_deemph,
@@ -592,11 +590,7 @@ class USBSoC(BaseSoC):
                     phy_pipe_rx_datak,
 
                     phy_pipe_tx_data,
-                    phy_pipe_tx_datak,
-
-                    dbg_pipe_state,
-                    dbg_ltssm_state
-
+                    phy_pipe_tx_datak
                 ]
                 self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
 
