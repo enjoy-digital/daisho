@@ -1,4 +1,0 @@
-- check PLL and DDR inputs/outputs in basic design
-- check and connect un-connected signals
-- add instrumentation signals and litescope on PIPE interface
-- test PIPE interface and USB3.0 design with TUSB1310A.
