@@ -75,6 +75,60 @@ _usb3_io = [
         Subsignal("tx_datak", Pins("HPC:LA18_CC_N", "HPC:LA17_CC_P")),
         IOStandard("LVCMOS25"),
     ),
+    # HiTechGlobal USB3.0 FMC P2 connector
+    ("usb_clkout", 1, Pins("HPC:HB00_CC_P"), IOStandard("LVCMOS25")),
+    ("usb_reset_n", 1, Pins("HPC:HB21_N"), IOStandard("LVCMOS25")),
+    ("usb_ulpi", 1,
+        Subsignal("clk", Pins("HPC:HA17_CC_P")),
+        Subsignal("data", Pins(
+            "HPC:HA20_N", "HPC:HA20_P", "HPC:HA23_P", "HPC:HA18_N",
+            "HPC:HA22_N", "HPC:HA19_N", "HPC:HA21_N", "HPC:HA19_P")),
+        Subsignal("dir", Pins("HPC:HA22_P")),
+        Subsignal("stp", Pins("HPC:HA21_P")),
+        Subsignal("nxt", Pins("HPC:HA18_P")),
+        IOStandard("LVCMOS25"),
+    ),
+    ("usb_pipe_ctrl", 1,
+        Subsignal("phy_reset_n", Pins("HPC:HB11_P")),
+        Subsignal("tx_detrx_lpbk", Pins("HPC:HB13_N")),
+        Subsignal("tx_elecidle", Pins("HPC:HB11_N")),
+        Subsignal("power_down", Pins("HPC:HB20_P", "HPC:HB20_N")),
+        Subsignal("tx_oneszeros", Pins("HPC:HB13_P")),
+        Subsignal("tx_deemph", Pins("HPC:HB14_P", "HPC:HB19_P")),
+        Subsignal("tx_margin", Pins("HPC:HB19_N", "HPC:HB15_N", "HPC:HB21_P")),
+        Subsignal("tx_swing", Pins("HPC:HB10_N")),
+        Subsignal("rx_polarity", Pins("HPC:HB18_N")),
+        Subsignal("rx_termination", Pins("HPC:HB12_N")),
+        Subsignal("rate", Pins("HPC:HB15_P")),
+        Subsignal("elas_buf_mode", Pins("HPC:HB18_P")),
+        IOStandard("LVCMOS25"),
+    ),
+    ("usb_pipe_status", 1,
+        Subsignal("rx_elecidle", Pins("HPC:HB16_P")),
+        Subsignal("rx_status", Pins("HPC:HB12_P", "HPC:HB17_CC_N", "HPC:HB17_CC_P")),
+        Subsignal("phy_status", Pins("HPC:HB16_N")),
+        Subsignal("pwr_present", Pins("HPC:HB14_N")),
+        IOStandard("LVCMOS25"),
+    ),
+    ("usb_pipe_data", 1,
+        Subsignal("rx_clk", Pins("HPC:HA00_CC_P")),
+        Subsignal("rx_valid", Pins("HPC:HA10_N")),
+        Subsignal("rx_data", Pins(
+            "HPC:HA11_P", "HPC:HA06_N", "HPC:HA10_P", "HPC:HA08_N",
+            "HPC:HA07_N", "HPC:HA09_N", "HPC:HA08_P", "HPC:HA07_P",
+            "HPC:HA06_P", "HPC:HA04_N", "HPC:HA09_P", "HPC:HA02_N",
+            "HPC:HA04_P", "HPC:HA02_P", "HPC:HA05_P", "HPC:HA03_P")),
+        Subsignal("rx_datak", Pins("HPC:", "HPC:")),
+
+        Subsignal("tx_clk", Pins("HPC:HB10_P")),
+        Subsignal("tx_data", Pins(
+            "HPC:HB05_P", "HPC:HB09_N", "HPC:HB05_N", "HPC:HB08_N",
+            "HPC:HB03_N", "HPC:HB04_N", "HPC:HB03_P", "HPC:HB02_P",
+            "HPC:HB04_P", "HPC:HB02_N", "HPC:HB08_P", "HPC:HB09_P",
+            "HPC:HB06_CC_N", "HPC:HB07_P", "HPC:HB06_CC_P", "HPC:HB01_N")),
+        Subsignal("tx_datak", Pins("HPC:HB07_N", "HPC:HB01_P")),
+        IOStandard("LVCMOS25"),
+    ),
 ]
 
 
@@ -142,20 +196,20 @@ class USBSoC(BaseSoC):
         "usb3_control": 22
     }
     csr_map.update(BaseSoC.csr_map)
-    def __init__(self, platform,
+    def __init__(self, platform, usb_connector=0,
         with_usb2=True, with_usb2_analyzer=False,
-        with_usb3=True, with_usb3_analyzer=True):
+        with_usb3=True, with_usb3_analyzer=False):
         BaseSoC.__init__(self, platform)
 
         # usb ios
-        usb_reset_n = platform.request("usb_reset_n")
+        usb_reset_n = platform.request("usb_reset_n", usb_connector)
         if with_usb2:
-            usb_ulpi = platform.request("usb_ulpi")
+            usb_ulpi = platform.request("usb_ulpi", usb_connector)
         if with_usb3:
-            usb_clkout = platform.request("usb_clkout")
-            usb_pipe_ctrl = platform.request("usb_pipe_ctrl")
-            usb_pipe_status = platform.request("usb_pipe_status")
-            usb_pipe_data = platform.request("usb_pipe_data")
+            usb_clkout = platform.request("usb_clkout", usb_connector)
+            usb_pipe_ctrl = platform.request("usb_pipe_ctrl", usb_connector)
+            usb_pipe_status = platform.request("usb_pipe_status", usb_connector)
+            usb_pipe_data = platform.request("usb_pipe_data", usb_connector)
 
         usb2_reset_n = Signal(reset=1)
         usb3_reset_n = Signal(reset=1)
@@ -394,6 +448,7 @@ class USBSoC(BaseSoC):
                 i_phy_pipe_half_clk=ClockSignal("phy_pipe_half"),
                 i_phy_pipe_half_clk_phase=ClockSignal("phy_pipe_half_phase"),
                 i_phy_pipe_quarter_clk=ClockSignal("phy_pipe_quarter"),
+
                 i_phy_pipe_rx_data=phy_pipe_rx_data,
                 i_phy_pipe_rx_datak=phy_pipe_rx_datak,
                 i_phy_pipe_rx_valid=phy_pipe_rx_valid,
@@ -409,7 +464,7 @@ class USBSoC(BaseSoC):
                 i_phy_rx_status=phy_rx_status,
                 o_phy_power_down=usb_pipe_ctrl.power_down,
                 i_phy_phy_status_i=phy_phy_status,
-                #o_phy_phy_status_o=usb_pipe_status.phy_status,
+                #o_phy_phy_status_o=,
                 i_phy_pwrpresent=usb_pipe_status.pwr_present,
 
                 o_phy_tx_oneszeros=usb_pipe_ctrl.tx_oneszeros,
@@ -527,12 +582,6 @@ class USBSoC(BaseSoC):
 
                     phy_pipe_tx_data,
                     phy_pipe_tx_datak,
-
-                    usb_ulpi.clk,
-                    usb_ulpi.data,
-                    usb_ulpi.dir,
-                    usb_ulpi.stp,
-                    usb_ulpi.nxt,
 
                     dbg_pipe_state,
                     dbg_ltssm_state
