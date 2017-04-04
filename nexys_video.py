@@ -199,7 +199,6 @@ class USBSoC(BaseSoC):
         # usb ios
         usb_reset_n = platform.request("usb_reset_n", usb_connector)
         if with_usb3:
-            usb_clkout = platform.request("usb_clkout", usb_connector)
             usb_pipe_ctrl = platform.request("usb_pipe_ctrl", usb_connector)
             usb_pipe_status = platform.request("usb_pipe_status", usb_connector)
             usb_pipe_data = platform.request("usb_pipe_data", usb_connector)
