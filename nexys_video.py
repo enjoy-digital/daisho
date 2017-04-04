@@ -84,6 +84,52 @@ class Platform(nexys_video.Platform):
         self.add_extension(_usb3_io)
 
 
+class _CRG(Module):
+    def __init__(self, platform):
+        self.clock_domains.cd_sys = ClockDomain()
+        self.clock_domains.cd_clk200 = ClockDomain()
+
+        clk100 = platform.request("clk100")
+        rst = platform.request("cpu_reset")
+
+        pll_locked = Signal()
+        pll_fb = Signal()
+        pll_sys = Signal()
+        pll_clk200 = Signal()
+        self.specials += [
+            Instance("PLLE2_BASE",
+                     p_STARTUP_WAIT="FALSE", o_LOCKED=pll_locked,
+
+                     # VCO @ 1600 MHz
+                     p_REF_JITTER1=0.01, p_CLKIN1_PERIOD=10.0,
+                     p_CLKFBOUT_MULT=16, p_DIVCLK_DIVIDE=1,
+                     i_CLKIN1=clk100, i_CLKFBIN=pll_fb, o_CLKFBOUT=pll_fb,
+
+                     # 133 MHz
+                     p_CLKOUT0_DIVIDE=12, p_CLKOUT0_PHASE=0.0,
+                     o_CLKOUT0=pll_sys,
+
+                     # 200 MHz
+                     p_CLKOUT1_DIVIDE=8, p_CLKOUT1_PHASE=0.0,
+                     o_CLKOUT1=pll_clk200,
+            ),
+            Instance("BUFG", i_I=pll_sys, o_O=self.cd_sys.clk),
+            Instance("BUFG", i_I=pll_clk200, o_O=self.cd_clk200.clk),
+            AsyncResetSynchronizer(self.cd_sys, ~pll_locked | ~rst),
+            AsyncResetSynchronizer(self.cd_clk200, ~pll_locked |  ~rst),
+        ]
+
+        reset_counter = Signal(4, reset=15)
+        ic_reset = Signal(reset=1)
+        self.sync.clk200 += \
+            If(reset_counter != 0,
+                reset_counter.eq(reset_counter - 1)
+            ).Else(
+                ic_reset.eq(0)
+            )
+        self.specials += Instance("IDELAYCTRL", i_REFCLK=ClockSignal("clk200"), i_RST=ic_reset)
+
+
 class BaseSoC(SoCCore):
     csr_map = {
         "eth_phy":  11,
@@ -91,10 +137,10 @@ class BaseSoC(SoCCore):
     }
     csr_map.update(SoCCore.csr_map)
     def __init__(self, platform,
-        with_ethernet=False,
+        with_ethernet=True,
         mac_address=0x10e2d5000000,
         ip_address="192.168.1.50"):
-        clk_freq = int(1e9/platform.default_clk_period)
+        clk_freq = int(133e6)
         SoCCore.__init__(self, platform, clk_freq,
             cpu_type=None,
             csr_data_width=32,
@@ -102,7 +148,7 @@ class BaseSoC(SoCCore):
             ident="Daisho USB3.0 Test Design",
             with_timer=False
         )
-        self.submodules.crg = CRG(platform.request(platform.default_clk_name))
+        self.submodules.crg = _CRG(platform)
 
         # uart <--> wishbone
         self.add_cpu_or_bridge(UARTWishboneBridge(platform.request("serial"),
@@ -110,7 +156,7 @@ class BaseSoC(SoCCore):
         self.add_wb_master(self.cpu_or_bridge.wishbone)
 
         self.crg.cd_sys.clk.attr.add("keep")
-        self.platform.add_period_constraint(self.crg.cd_sys.clk, 10.0)
+        self.platform.add_period_constraint(self.crg.cd_sys.clk, 7.5)
 
         # ethernet PHY and UDP/IP stack
         if with_ethernet:
