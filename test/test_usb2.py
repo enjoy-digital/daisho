@@ -8,19 +8,14 @@ wb.open()
 
 # # #
 
-# opt configuration
-wb.regs.usb2_control_opt_disable_all.write(0)
-wb.regs.usb2_control_opt_enable_hs.write(0)
-wb.regs.usb2_control_opt_ignore_vbus.write(0)
-
-# disable phy & core
+# disable usb2 phy & core
 wb.regs.usb2_control_phy_enable.write(0)
 wb.regs.usb2_control_core_enable.write(0)
 
-# enable phy
+# enable usb2 phy
 wb.regs.usb2_control_phy_enable.write(1)
 
-# enable core
+# enable usb2 core
 wb.regs.usb2_control_core_enable.write(1)
 
 # # #

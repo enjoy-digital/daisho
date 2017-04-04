@@ -167,19 +167,10 @@ class USBSoC(BaseSoC):
                     self._phy_enable = CSRStorage()
                     self._core_enable = CSRStorage()
 
-                    self._opt_disable_all = CSRStorage()
-                    self._opt_enable_hs = CSRStorage()
-                    self._opt_ignore_vbus = CSRStorage()
-
-
                     # # #
 
                     self.phy_enable = self._phy_enable.storage
                     self.core_enable = self._core_enable.storage
-
-                    self.opt_disable_all = self._opt_disable_all.storage
-                    self.opt_enable_hs = self._opt_enable_hs.storage
-                    self.opt_ignore_vbus = self._opt_ignore_vbus.storage
 
 
             self.submodules.usb2_control = USB2Control()
@@ -224,9 +215,9 @@ class USBSoC(BaseSoC):
                 o_phy_ulpi_stp=usb_ulpi.stp,
                 i_phy_ulpi_nxt=usb_ulpi.nxt,
 
-                i_opt_disable_all=self.usb2_control.opt_disable_all,
-                i_opt_enable_hs=self.usb2_control.opt_enable_hs,
-                i_opt_ignore_vbus=self.usb2_control.opt_ignore_vbus,
+                i_opt_disable_all=0,
+                i_opt_enable_hs=0,
+                i_opt_ignore_vbus=0,
                 o_stat_connected=stat_connected,
                 o_stat_fs=stat_fs,
                 o_stat_hs=stat_hs,
@@ -239,6 +230,7 @@ class USBSoC(BaseSoC):
                 i_buf_in_commit=0, # TODO
                 i_buf_in_commit_len=0, # TODO
                 #o_buf_in_commit_ack=, # TODO
+
                 i_buf_out_addr=0, # TODO
                 #o_buf_out_q=, # TODO
                 #o_buf_out_len=, # TODO
