@@ -5,7 +5,7 @@ In this repository we are testing USB3 IP Core from Daisho on a Xilinx device.
  * USB2 / ULPI working :) (vendor agnostic)
  * UDB3 / PIPE working :) (IDDR/ODDR and PLL specific to Xilinx)
 
-This work was supported by TimVideos.us (https://code.timvideos.us) and with a generous loan of a USB3.0 protocol analyzer from the Daisho project.
+This work was supported by [TimVideos.us](https://code.timvideos.us) and with a generous loan of a USB3.0 protocol analyzer from the Daisho project.
 
 The design currently uses a TUSB1310A for interfacing with the USB3.0 connector. Future plans include replacing this part using the high speed transceivers (GTPs) found in Artix-7/Kintex-7 FPGAs.
 
