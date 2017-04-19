@@ -8,7 +8,7 @@ from litex.build.generic_platform import *
 from litex.soc.interconnect.csr import *
 from litex.soc.integration.soc_core import *
 from litex.soc.integration.builder import *
-from litex.soc.cores.uart.bridge import UARTWishboneBridge
+from litex.soc.cores.uart import UARTWishboneBridge
 
 from liteeth.common import convert_ip
 from liteeth.phy.s7rgmii import LiteEthPHYRGMII
