@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from litex.gen import *
-from litex.gen.genlib.resetsync import AsyncResetSynchronizer
-from litex.gen.fhdl.specials import Tristate
+from migen import *
+from migen.genlib.resetsync import AsyncResetSynchronizer
+from migen.fhdl.specials import Tristate
+
 from litex.build.generic_platform import *
 
 from litex.soc.interconnect.csr import *
