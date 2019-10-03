@@ -20,6 +20,7 @@ from litex.boards.platforms import nexys_video
 
 from litescope import LiteScopeAnalyzer
 
+# USB3 IOs -----------------------------------------------------------------------------------------
 
 _usb3_io = [
     # HiTechGlobal USB3.0 FMC P1 connector
@@ -84,6 +85,7 @@ class Platform(nexys_video.Platform):
         nexys_video.Platform.__init__(self, *args, **kwargs)
         self.add_extension(_usb3_io)
 
+# CRG ----------------------------------------------------------------------------------------------
 
 class _CRG(Module):
     def __init__(self, platform):
@@ -130,6 +132,7 @@ class _CRG(Module):
             )
         self.specials += Instance("IDELAYCTRL", i_REFCLK=ClockSignal("clk200"), i_RST=ic_reset)
 
+# BaseSoC ------------------------------------------------------------------------------------------
 
 class BaseSoC(SoCMini):
     csr_map = {
@@ -175,6 +178,7 @@ class BaseSoC(SoCMini):
                 self.eth_phy.crg.cd_eth_rx.clk,
                 self.eth_phy.crg.cd_eth_tx.clk)
 
+# USBSoC -------------------------------------------------------------------------------------------
 
 class USBSoC(BaseSoC):
     def __init__(self, platform, usb_connector=0,
@@ -481,6 +485,7 @@ class USBSoC(BaseSoC):
                 self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half", csr_csv="analyzer.csv")
                 self.add_csr("analyzer")
 
+# Build --------------------------------------------------------------------------------------------
 
 def main():
     platform = Platform()
