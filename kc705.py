@@ -99,7 +99,7 @@ class BaseSoC(SoCCore):
             cpu_type=None,
             csr_data_width=32,
             with_uart=False,
-            ident="Daisho USB3.0 Test Design",
+            ident="Daisho USB3.0 Test Design", ident_version=True,
             with_timer=False
         )
         self.submodules.crg = CRG(platform.request(platform.default_clk_name))
@@ -136,12 +136,6 @@ class BaseSoC(SoCCore):
 
 
 class USBSoC(BaseSoC):
-    csr_map = {
-        "analyzer": 20,
-        "usb2_control": 21,
-        "usb3_control": 22
-    }
-    csr_map.update(BaseSoC.csr_map)
     def __init__(self, platform, usb_connector=0,
         with_usb2=True, with_usb2_analyzer=False,
         with_usb3=True, with_usb3_analyzer=False):
@@ -205,6 +199,7 @@ class USBSoC(BaseSoC):
 
 
             self.submodules.usb2_control = USB2Control()
+            self.add_csr("usb2_control")
 
             self.clock_domains.cd_ulpi = ClockDomain()
             self.comb += self.cd_ulpi.clk.eq(usb_ulpi.clk)
@@ -358,6 +353,7 @@ class USBSoC(BaseSoC):
 
 
             self.submodules.usb3_control = USB3Control()
+            self.add_csr("usb3_control")
 
             phy_pipe_pll_locked = Signal()
             phy_pipe_pll_fb = Signal()
@@ -593,19 +589,14 @@ class USBSoC(BaseSoC):
                     phy_pipe_tx_data,
                     phy_pipe_tx_datak
                 ]
-                self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half")
-
-    def do_exit(self, vns):
-        if hasattr(self, "analyzer"):
-            self.analyzer.export_csv(vns, "test/analyzer.csv")
-
+                self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals, 2048, cd="phy_pipe_half", csr_csv="analyzer.csv")
+                self.add_csr("analyzer")
 
 def main():
     platform = Platform()
     soc = USBSoC(platform)
     builder = Builder(soc, output_dir="build", csr_csv="test/csr.csv")
     vns = builder.build()
-    soc.do_exit(vns)
 
 
 if __name__ == "__main__":
