@@ -105,9 +105,8 @@ class BaseSoC(SoCCore):
         self.submodules.crg = CRG(platform.request(platform.default_clk_name))
 
         # uart <--> wishbone
-        self.add_cpu_or_bridge(UARTWishboneBridge(platform.request("serial"),
-                                                  clk_freq, baudrate=115200))
-        self.add_wb_master(self.cpu_or_bridge.wishbone)
+        self.submodules.uart_bridge = UARTWishboneBridge(platform.request("serial"), clk_freq, baudrate=115200)
+        self.add_wb_master(self.uart_bridge.wishbone)
 
         # ethernet PHY and UDP/IP stack
         self.submodules.eth_phy = LiteEthPHY(platform.request("eth_clocks"),
@@ -602,7 +601,7 @@ class USBSoC(BaseSoC):
 
 
 def main():
-    platform = Platform(toolchain="vivado")
+    platform = Platform()
     soc = USBSoC(platform)
     builder = Builder(soc, output_dir="build", csr_csv="test/csr.csv")
     vns = builder.build()

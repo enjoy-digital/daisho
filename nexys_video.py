@@ -152,9 +152,8 @@ class BaseSoC(SoCCore):
         self.submodules.crg = _CRG(platform)
 
         # uart <--> wishbone
-        self.add_cpu_or_bridge(UARTWishboneBridge(platform.request("serial"),
-                                                  clk_freq, baudrate=115200))
-        self.add_wb_master(self.cpu_or_bridge.wishbone)
+        self.submodules.uart_bridge = UARTWishboneBridge(platform.request("serial"), clk_freq, baudrate=115200)
+        self.add_wb_master(self.uart_bridge.wishbone)
 
         self.crg.cd_sys.clk.attr.add("keep")
         self.platform.add_period_constraint(self.crg.cd_sys.clk, 7.5)
@@ -498,7 +497,7 @@ class USBSoC(BaseSoC):
 
 
 def main():
-    platform = Platform(toolchain="vivado")
+    platform = Platform()
     soc = USBSoC(platform)
     builder = Builder(soc, output_dir="build", csr_csv="test/csr.csv")
     vns = builder.build()
