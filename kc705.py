@@ -85,23 +85,17 @@ class Platform(kc705.Platform):
         self.add_extension(_usb3_io)
 
 
-class BaseSoC(SoCCore):
+class BaseSoC(SoCMini):
     csr_map = {
         "eth_phy":  11,
         "eth_core": 12
     }
-    csr_map.update(SoCCore.csr_map)
+    csr_map.update(SoCMini.csr_map)
     def __init__(self, platform,
         mac_address=0x10e2d5000000,
         ip_address="192.168.1.50"):
         clk_freq = int(1e9/platform.default_clk_period)
-        SoCCore.__init__(self, platform, clk_freq,
-            cpu_type=None,
-            csr_data_width=32,
-            with_uart=False,
-            ident="Daisho USB3.0 Test Design", ident_version=True,
-            with_timer=False
-        )
+        SoCMini.__init__(self, platform, clk_freq, ident="Daisho USB3.0 Test Design", ident_version=True)
         self.submodules.crg = CRG(platform.request(platform.default_clk_name))
 
         # uart <--> wishbone
